@@ -1,4 +1,5 @@
 #include "tf_card.h"
+#include <stdio.h>
 
 
 /*--------------------------------------------------------------------------
@@ -44,10 +45,29 @@ BYTE CardType;			/* Card type flags */
 /*-----------------------------------------------------------------------*/
 /* SPI controls (Platform dependent)                                     */
 /*-----------------------------------------------------------------------*/
-//#define FCLK_SLOW() { SPI_CTL0(SPI1) = (SPI_CTL0(SPI1) & ~0x38) | 0x28; }	/* Set SCLK = PCLK2 / 64 */
-//#define FCLK_FAST() { SPI_CTL0(SPI1) = (SPI_CTL0(SPI1) & ~0x38) | 0x00; }	/* Set SCLK = PCLK2 / 2 */
-//#define CS_HIGH() PB_OUT(12,1)
-//#define CS_LOW() PB_OUT(12,0)
+/// \tag::gpio_set_drive_strength[]
+// Select drive strength for this GPIO
+static void gpio_set_drive_strength(uint gpio, uint value) {
+    invalid_params_if(GPIO, gpio >= NUM_BANK0_GPIOS);
+    invalid_params_if(GPIO, value << PADS_BANK0_GPIO0_DRIVE_LSB & ~PADS_BANK0_GPIO0_DRIVE_BITS);
+    hw_write_masked(&padsbank0_hw->io[gpio],
+                   value << PADS_BANK0_GPIO0_DRIVE_LSB,
+                   PADS_BANK0_GPIO0_DRIVE_BITS
+    );
+}
+/// \end::gpio_set_drive_strength[]
+
+/// \tag::gpio_set_slew_rate[]
+// Select slew rate for this GPIO
+static void gpio_set_slew_rate(uint gpio, uint value) {
+    invalid_params_if(GPIO, gpio >= NUM_BANK0_GPIOS);
+    invalid_params_if(GPIO, value << PADS_BANK0_GPIO0_SLEWFAST_LSB & ~PADS_BANK0_GPIO0_SLEWFAST_BITS);
+    hw_write_masked(&padsbank0_hw->io[gpio],
+                   value << PADS_BANK0_GPIO0_SLEWFAST_LSB,
+                   PADS_BANK0_GPIO0_SLEWFAST_BITS
+    );
+}
+/// \end::gpio_set_slew_rate[]
 
 static inline void cs_select(uint cs_pin) {
     asm volatile("nop \n nop \n nop"); // FIXME
@@ -68,7 +88,7 @@ static void FCLK_SLOW(void)
 
 static void FCLK_FAST(void)
 {
-    spi_set_baudrate(spi0, 50 * MHZ);
+    spi_set_baudrate(spi0, 25 * MHZ);
 }
 
 static void CS_HIGH(void)
@@ -85,56 +105,43 @@ static void CS_LOW(void)
 static
 void init_spi(void)
 {
-    /* GPIO pin configuration */
-    gpio_set_function(PIN_SPI0_SCK, GPIO_FUNC_SPI);
-    gpio_set_function(PIN_SPI0_MISO, GPIO_FUNC_SPI);
-    gpio_set_function(PIN_SPI0_MOSI, GPIO_FUNC_SPI);
-    gpio_init(PIN_SPI0_CS);
-    gpio_set_dir(PIN_SPI0_CS, GPIO_OUT);
+	/* GPIO pin configuration */
+	/* pull up of MISO is MUST */
+	/* Set drive strength and slew rate if needed to meet wire condition (default: 4mA, SLOW) */
+	gpio_init(PIN_SPI0_SCK);
+	gpio_pull_up(PIN_SPI0_SCK);
+	//gpio_set_drive_strength(PIN_SPI0_SCK, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA);
+	//gpio_set_slew_rate(PIN_SPI0_SCK, 0); // 0: SLOW, 1: FAST
+	gpio_set_function(PIN_SPI0_SCK, GPIO_FUNC_SPI);
 
-    /* chip _select invalid*/
-    CS_HIGH();
+	gpio_init(PIN_SPI0_MISO);
+	gpio_pull_up(PIN_SPI0_MISO);
+	gpio_set_function(PIN_SPI0_MISO, GPIO_FUNC_SPI);
 
-    spi_init(spi0, 2 * MHZ);
+	gpio_init(PIN_SPI0_MOSI);
+	gpio_pull_up(PIN_SPI0_MOSI);
+	//gpio_set_drive_strength(PIN_SPI0_MOSI, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA);
+	//gpio_set_slew_rate(PIN_SPI0_MOSI, 0); // 0: SLOW, 1: FAST
+	gpio_set_function(PIN_SPI0_MOSI, GPIO_FUNC_SPI);
 
-    /* SPI0 parameter config */
-    spi_set_format(spi0, 
-        8, /* data_bits */
-        SPI_CPOL_0, /* cpol */
-        SPI_CPHA_0, /* cpha */
-        SPI_MSB_FIRST /* order */
-    );
+	gpio_init(PIN_SPI0_CS);
+	gpio_pull_up(PIN_SPI0_CS);
+	//gpio_set_drive_strength(PIN_SPI0_CS, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA);
+	//gpio_set_slew_rate(PIN_SPI0_CS, 0); // 0: SLOW, 1: FAST
+	gpio_set_dir(PIN_SPI0_CS, GPIO_OUT);
 
-#if 0
-    spi_parameter_struct spi_init_struct;
+	/* chip _select invalid*/
+	CS_HIGH();
 
-    rcu_periph_clock_enable(RCU_GPIOB);
-    rcu_periph_clock_enable(RCU_SPI1);
+	spi_init(spi0, 2 * MHZ);
 
-    /* SPI1_SCK(PB13), SPI1_MISO(PB14) and SPI1_MOSI(PB15) GPIO pin configuration */
-    gpio_init(GPIOB, GPIO_MODE_AF_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_13 | GPIO_PIN_15);
-    gpio_init(GPIOB, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_14);
-    /* SPI1_CS(PB12) GPIO pin configuration */
-    gpio_init(GPIOB, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_12);
-
-    /* chip _select invalid*/
-    CS_HIGH();
-
-    /* SPI1 parameter config */
-    spi_init_struct.trans_mode           = SPI_TRANSMODE_FULLDUPLEX;
-    spi_init_struct.device_mode          = SPI_MASTER;
-    spi_init_struct.frame_size           = SPI_FRAMESIZE_8BIT;
-    spi_init_struct.clock_polarity_phase = SPI_CK_PL_HIGH_PH_2EDGE;
-    spi_init_struct.nss                  = SPI_NSS_SOFT;
-    spi_init_struct.prescale             = SPI_PSC_32; // SPI_PSC_32; (PCLK1=54MHz)
-    spi_init_struct.endian               = SPI_ENDIAN_MSB;
-    spi_init(SPI1, &spi_init_struct);
-
-    /* set crc polynomial */
-    spi_crc_polynomial_set(SPI1,7);
-    /* enable SPI1 */
-    spi_enable(SPI1);
-#endif
+	/* SPI0 parameter config */
+	spi_set_format(spi0,
+		8, /* data_bits */
+		SPI_CPOL_0, /* cpol */
+		SPI_CPHA_0, /* cpha */
+		SPI_MSB_FIRST /* order */
+	);
 }
 
 /* Exchange a byte */
@@ -143,27 +150,9 @@ BYTE xchg_spi (
 	BYTE dat	/* Data to send */
 )
 {
-	/*
-	uint8_t wr_buf = dat;
-	uint8_t rd_buf;
-	spi_write_read_blocking(spi0, &wr_buf, &rd_buf, 1);
-	return rd_buf;
-	*/
-	/*
-	uint8_t buf[1] = {dat};
-	spi_write_read_blocking(spi0, buf, buf, 1);
-	return buf[0];
-	*/
-	uint8_t wr_buf[1] = {dat};
-	uint8_t rd_buf[1];
-	spi_write_read_blocking(spi0, wr_buf, rd_buf, 1);
-	return rd_buf[0];
-#if 0
-	while(RESET == spi_i2s_flag_get(SPI1, SPI_FLAG_TBE));
-        spi_i2s_data_transmit(SPI1, dat);
-	while(RESET == spi_i2s_flag_get(SPI1, SPI_FLAG_RBNE));
-        return(spi_i2s_data_receive(SPI1));     /* Return received byte */
-#endif
+	uint8_t buf = dat;
+	spi_write_read_blocking(spi0, &buf, &buf, 1);
+	return buf;
 }
 
 
@@ -343,7 +332,7 @@ void init_timer2(void)
     \param[out] none
     \retval     none
 */
-/*
+#if 0
 static
 void tfcard_timer_irq (void)
 {
@@ -361,7 +350,7 @@ void tfcard_timer_irq (void)
         // }
     }
 }
-*/
+#endif
 
 /*!
     \brief      this function handles Timer0 updata interrupt request.
@@ -369,10 +358,12 @@ void tfcard_timer_irq (void)
     \param[out] none
     \retval     none
 */
+#if 0
 void TIMER2_IRQHandler(void)
 {
-    // tfcard_timer_irq();
+    tfcard_timer_irq();
 }
+#endif
 
 
 /*--------------------------------------------------------------------------

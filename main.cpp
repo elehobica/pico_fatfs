@@ -13,7 +13,6 @@ int main() {
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
 
-    printf("Hello, world!\n");
     {
         uint8_t mount_is_ok = 1; /* 0: mount successful ; 1: mount failed */
         int offset = 0;
@@ -30,9 +29,7 @@ int main() {
             printf("mount failed\n");
         }
 
-        if (mount_is_ok == 0)
-        {
-            //while(1)
+        if (mount_is_ok == 0) {
             {
                 offset = 0;
                 fr = f_open(&fil, "logo.bin", FA_READ);
