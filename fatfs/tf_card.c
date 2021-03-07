@@ -152,7 +152,7 @@ BYTE xchg_spi (
 {
 	uint8_t buf = dat;
 	spi_write_read_blocking(spi0, &buf, &buf, 1);
-	return buf;
+	return (BYTE) buf;
 }
 
 
@@ -499,13 +499,14 @@ DWORD get_fattime (void)
 static
 void xmit_spi_multi (
 	const BYTE *buff,		/* Pointer to data buffer */
-	UINT btr		/* Number of bytes to receive (even number) */
+	UINT btt		/* Number of bytes to transmit (even number) */
 )
 {
 	do
 	{
 		xchg_spi(*buff++);
-	} while (btr--);
+		xchg_spi(*buff++);
+	} while (btt -= 2);
 
 }
 
@@ -549,6 +550,8 @@ DRESULT disk_write (
 	if (Stat & STA_PROTECT) return RES_WRPRT;	/* Check write protect */
 
 	if (!(CardType & CT_BLOCK)) sector *= 512;	/* LBA ==> BA conversion (byte addressing cards) */
+
+	if (!_select()) return RES_NOTRDY;
 
 	if (count == 1) {	/* Single sector write */
 		if ((send_cmd(CMD24, sector) == 0)	/* WRITE_BLOCK */
