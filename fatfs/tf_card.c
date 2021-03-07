@@ -486,11 +486,57 @@ DRESULT disk_read (
 
 
 
+#if !FF_FS_READONLY && !FF_FS_NORTC
+/* get the current time */
+DWORD get_fattime (void)
+{
+	return 0;
+}
+#endif
+
+#if FF_FS_READONLY == 0
+/* Transmit multiple byte */
+static
+void xmit_spi_multi (
+	const BYTE *buff,		/* Pointer to data buffer */
+	UINT btr		/* Number of bytes to receive (even number) */
+)
+{
+	do
+	{
+		xchg_spi(*buff++);
+	} while (btr--);
+
+}
+
+/*-----------------------------------------------------------------------*/
+/* Transmit a data packet to the MMC                                     */
+/*-----------------------------------------------------------------------*/
+
+static
+int xmit_datablock (	/* 1:OK, 0:Error */
+	const BYTE *buff, /* 512 byte data block to be transmitted */
+	BYTE token /* Data/Stop token */
+)
+{
+	BYTE resp;
+	if (!wait_ready(500)) return 0;
+	xchg_spi(token); /* Xmit data token */
+	if (token != 0xFD) { /* Is data token */
+		xmit_spi_multi(buff, 512); /* Xmit the data block to the MMC */
+		xchg_spi(0xFF); /* CRC (Dummy) */
+		xchg_spi(0xFF);
+		resp = xchg_spi(0xFF); /* Reveive data response */
+		if ((resp & 0x1F) != 0x05) /* If not accepted, return with error */
+			return 0;
+	}
+	return 1;
+}
+
 /*-----------------------------------------------------------------------*/
 /* Write sector(s)                                                       */
 /*-----------------------------------------------------------------------*/
 
-#if FF_FS_READONLY == 0
 DRESULT disk_write (
 	BYTE drv,			/* Physical drive number (0) */
 	const BYTE *buff,	/* Ponter to the data to write */
