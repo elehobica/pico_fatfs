@@ -10,17 +10,22 @@
 #include "ff.h"
 #include "diskio.h"
 
-/* MMC card type flags (MMC_GET_TYPE) */
-#define CT_MMC         0x01            /* MMC ver 3 */
-#define CT_SD1         0x02            /* SD ver 1 */
-#define CT_SD2         0x04            /* SD ver 2 */
-#define CT_SDC         (CT_SD1|CT_SD2) /* SD */
-#define CT_BLOCK       0x08            /* Block addressing */
-
 /* SPI pin assignment */
+#define PIN_SPI0_CS     5
+#define PIN_SPI0_SCK    2
+#define PIN_SPI0_MISO   4
+#define PIN_SPI0_MOSI   3
+/*
 #define PIN_SPI0_CS     5
 #define PIN_SPI0_SCK    6
 #define PIN_SPI0_MISO   4
 #define PIN_SPI0_MOSI   3
+*/
+/*
+#define PIN_SPI0_CS     17
+#define PIN_SPI0_SCK    18
+#define PIN_SPI0_MISO   16
+#define PIN_SPI0_MOSI   19
+*/
 
 #endif

@@ -30,17 +30,26 @@
 #define CMD55	(55)		/* APP_CMD */
 #define CMD58	(58)		/* READ_OCR */
 
+/* MMC card type flags (MMC_GET_TYPE) */
+#define CT_MMC         0x01            /* MMC ver 3 */
+#define CT_SD1         0x02            /* SD ver 1 */
+#define CT_SD2         0x04            /* SD ver 2 */
+#define CT_SDC         (CT_SD1|CT_SD2) /* SD */
+#define CT_BLOCK       0x08            /* Block addressing */
+
+#define CLK_SLOW	(100 * KHZ)
+#define CLK_FAST	(50 * MHZ)
+
 static volatile
 DSTATUS Stat = STA_NOINIT;	/* Physical drive status */
-
-// static volatile
-// UINT Timer1, Timer2;	/* 1kHz decrement timer stopped at zero (disk_timerproc()) */
-static volatile
-UINT delay_timer1, delay_timer2;        	/* 1kHz decrement timer stopped at zero (disk_timerproc()) */
 
 static
 BYTE CardType;			/* Card type flags */
 
+static inline uint32_t _millis(void)
+{
+	return to_ms_since_boot(get_absolute_time());
+}
 
 /*-----------------------------------------------------------------------*/
 /* SPI controls (Platform dependent)                                     */
@@ -56,6 +65,18 @@ static void gpio_set_drive_strength(uint gpio, uint value) {
     );
 }
 /// \end::gpio_set_drive_strength[]
+
+/// \tag::gpio_set_schmitt[]
+// Select schmitt trigger for this GPIO
+static void gpio_set_schmitt(uint gpio, uint value) {
+    invalid_params_if(GPIO, gpio >= NUM_BANK0_GPIOS);
+    invalid_params_if(GPIO, value << PADS_BANK0_GPIO1_SCHMITT_LSB & ~PADS_BANK0_GPIO1_SCHMITT_BITS);
+    hw_write_masked(&padsbank0_hw->io[gpio],
+                   value << PADS_BANK0_GPIO1_SCHMITT_LSB,
+                   PADS_BANK0_GPIO1_SCHMITT_BITS
+    );
+}
+/// \end::gpio_set_schmitt[]
 
 /// \tag::gpio_set_slew_rate[]
 // Select slew rate for this GPIO
@@ -83,12 +104,12 @@ static inline void cs_deselect(uint cs_pin) {
 
 static void FCLK_SLOW(void)
 {
-    spi_set_baudrate(spi0, 2 * MHZ);
+    spi_set_baudrate(spi0, CLK_SLOW);
 }
 
 static void FCLK_FAST(void)
 {
-    spi_set_baudrate(spi0, 25 * MHZ);
+    spi_set_baudrate(spi0, CLK_FAST);
 }
 
 static void CS_HIGH(void)
@@ -106,34 +127,35 @@ static
 void init_spi(void)
 {
 	/* GPIO pin configuration */
-	/* pull up of MISO is MUST */
-	/* Set drive strength and slew rate if needed to meet wire condition (default: 4mA, SLOW) */
+	/* pull up of MISO is MUST (10Kohm external pull up is recommended) */
+	/* Set drive strength and slew rate if needed to meet wire condition */
 	gpio_init(PIN_SPI0_SCK);
-	gpio_pull_up(PIN_SPI0_SCK);
-	//gpio_set_drive_strength(PIN_SPI0_SCK, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA);
-	//gpio_set_slew_rate(PIN_SPI0_SCK, 0); // 0: SLOW, 1: FAST
+	//gpio_pull_up(PIN_SPI0_SCK);
+	gpio_set_drive_strength(PIN_SPI0_SCK, PADS_BANK0_GPIO0_DRIVE_VALUE_2MA); // 2mA, 4mA (default), 8mA, 12mA
+	//gpio_set_slew_rate(PIN_SPI0_SCK, 0); // 0: SLOW (default), 1: FAST
 	gpio_set_function(PIN_SPI0_SCK, GPIO_FUNC_SPI);
 
 	gpio_init(PIN_SPI0_MISO);
-	gpio_pull_up(PIN_SPI0_MISO);
+	//gpio_pull_up(PIN_SPI0_MISO);
+	//gpio_set_schmitt(PIN_SPI0_MISO, 1); // 0: Off, 1: On (default)
 	gpio_set_function(PIN_SPI0_MISO, GPIO_FUNC_SPI);
 
 	gpio_init(PIN_SPI0_MOSI);
-	gpio_pull_up(PIN_SPI0_MOSI);
-	//gpio_set_drive_strength(PIN_SPI0_MOSI, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA);
-	//gpio_set_slew_rate(PIN_SPI0_MOSI, 0); // 0: SLOW, 1: FAST
+	//gpio_pull_up(PIN_SPI0_MOSI);
+	gpio_set_drive_strength(PIN_SPI0_MOSI, PADS_BANK0_GPIO0_DRIVE_VALUE_2MA); // 2mA, 4mA (default), 8mA, 12mA
+	//gpio_set_slew_rate(PIN_SPI0_MOSI, 0); // 0: SLOW (default), 1: FAST
 	gpio_set_function(PIN_SPI0_MOSI, GPIO_FUNC_SPI);
 
 	gpio_init(PIN_SPI0_CS);
-	gpio_pull_up(PIN_SPI0_CS);
-	//gpio_set_drive_strength(PIN_SPI0_CS, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA);
-	//gpio_set_slew_rate(PIN_SPI0_CS, 0); // 0: SLOW, 1: FAST
+	//gpio_pull_up(PIN_SPI0_CS);
+	gpio_set_drive_strength(PIN_SPI0_CS, PADS_BANK0_GPIO0_DRIVE_VALUE_2MA); // 2mA, 4mA (default), 8mA, 12mA
+	//gpio_set_slew_rate(PIN_SPI0_CS, 0); // 0: SLOW (default), 1: FAST
 	gpio_set_dir(PIN_SPI0_CS, GPIO_OUT);
 
 	/* chip _select invalid*/
 	CS_HIGH();
 
-	spi_init(spi0, 2 * MHZ);
+	spi_init(spi0, CLK_SLOW);
 
 	/* SPI0 parameter config */
 	spi_set_format(spi0,
@@ -150,9 +172,9 @@ BYTE xchg_spi (
 	BYTE dat	/* Data to send */
 )
 {
-	uint8_t buf = dat;
-	spi_write_read_blocking(spi0, &buf, &buf, 1);
-	return (BYTE) buf;
+	uint8_t *buff = (uint8_t *) &dat;
+	spi_write_read_blocking(spi0, buff, buff, 1);
+	return (BYTE) *buff;
 }
 
 
@@ -163,12 +185,8 @@ void rcvr_spi_multi (
 	UINT btr		/* Number of bytes to receive (even number) */
 )
 {
-	do
-	{
-		*buff = xchg_spi(0xff);
-		buff++;
-	} while (btr--);
-
+	uint8_t *b = (uint8_t *) buff;
+	spi_read_blocking(spi0, 0xff, b, btr);
 }
 
 
@@ -183,12 +201,11 @@ int wait_ready (	/* 1:Ready, 0:Timeout */
 {
 	BYTE d;
 
-	// Timer2 = wt;
-    delay_timer2 = wt;
+	uint32_t t = _millis();
 	do {
 		d = xchg_spi(0xFF);
 		/* This loop takes a time. Insert rot_rdq() here for multitask envilonment. */
-	} while (d != 0xFF && delay_timer2);	/* Wait for card goes ready or timeout */
+	} while (d != 0xFF && _millis() < t + wt);	/* Wait for card goes ready or timeout */
 
 	return (d == 0xFF) ? 1 : 0;
 }
@@ -237,11 +254,12 @@ int rcvr_datablock (	/* 1:OK, 0:Error */
 {
 	BYTE token;
 
-	delay_timer1 = 200;
+	const uint32_t timeout = 200;
+	uint32_t t = _millis();
 	do {							/* Wait for DataStart token in timeout of 200ms */
 		token = xchg_spi(0xFF);
 		/* This loop will take a time. Insert rot_rdq() here for multitask envilonment. */
-	} while ((token == 0xFF) && delay_timer1);
+	} while (token == 0xFF && _millis() < t + timeout);
 	if(token != 0xFE) return 0;		/* Function fails if invalid DataStart token or timeout */
 
 	rcvr_spi_multi(buff, btr);		/* Store trailing data to the buffer */
@@ -297,75 +315,6 @@ BYTE send_cmd (		/* Return value: R1 resp (bit7==1:Failed to send) */
 	return res;							/* Return received response */
 }
 
-#if 0
-static
-void init_timer2(void)
-{
-    timer_parameter_struct timer_initpara;
-
-    rcu_periph_clock_enable(RCU_TIMER2);
-    timer_deinit(TIMER2);
-    /* ((1+TIM_Prescaler )/时钟)*(1+TIM_Period ) 
-        (108000/108000000)*(1000)=1ms
-    */
-    timer_initpara.period = (1000 - 1);
-    timer_initpara.prescaler         = (108 - 1);
-    timer_initpara.alignedmode       = TIMER_COUNTER_EDGE;
-    timer_initpara.counterdirection  = TIMER_COUNTER_UP;
-    timer_initpara.clockdivision     = TIMER_CKDIV_DIV1;
-    timer_initpara.repetitioncounter = 0;
-    timer_init(TIMER2, &timer_initpara);
-
-    timer_update_event_enable(TIMER2);
-    timer_interrupt_enable(TIMER2,TIMER_INT_UP);
-    timer_flag_clear(TIMER2, TIMER_FLAG_UP);
-    timer_update_source_config(TIMER2, TIMER_UPDATE_SRC_GLOBAL);
-
-    /* TIMER2 counter enable */
-    timer_enable(TIMER2);
-}
-#endif
-
-/*!
-    \brief      time base IRQ
-    \param[in]  none
-    \param[out] none
-    \retval     none
-*/
-#if 0
-static
-void tfcard_timer_irq (void)
-{
-    if (RESET != timer_flag_get(TIMER2, TIMER_FLAG_UP)){
-        timer_flag_clear(TIMER2, TIMER_FLAG_UP);
-
-        if (delay_timer1 > 0x00U){
-            delay_timer1--;
-        }
-        if (delay_timer2 > 0x00U){
-            delay_timer2--;
-        }
-        // else {
-        //     timer_disable(TIMER2);
-        // }
-    }
-}
-#endif
-
-/*!
-    \brief      this function handles Timer0 updata interrupt request.
-    \param[in]  none
-    \param[out] none
-    \retval     none
-*/
-#if 0
-void TIMER2_IRQHandler(void)
-{
-    tfcard_timer_irq();
-}
-#endif
-
-
 /*--------------------------------------------------------------------------
 
    Public Functions
@@ -382,12 +331,13 @@ DSTATUS disk_initialize (
 )
 {
 	BYTE n, cmd, ty, ocr[4];
+	const uint32_t timeout = 1000; /* Initialization timeout = 1 sec */
+	uint32_t t;
 
 
 	if (drv) return STA_NOINIT;			/* Supports only drive 0 */
 	init_spi();							/* Initialize SPI */
     sleep_ms(10);
-    //init_timer2();
 
 	if (Stat & STA_NODISK) return Stat;	/* Is card existing in the soket? */
 
@@ -397,12 +347,12 @@ DSTATUS disk_initialize (
 
 	ty = 0;
 	if (send_cmd(CMD0, 0) == 1) {			/* Put the card SPI/Idle state */
-		delay_timer1 = 1000;						/* Initialization timeout = 1 sec */
+		t = _millis();
 		if (send_cmd(CMD8, 0x1AA) == 1) {	/* SDv2? */
 			for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);	/* Get 32 bit return value of R7 resp */
 			if (ocr[2] == 0x01 && ocr[3] == 0xAA) {				/* Is the card supports vcc of 2.7-3.6V? */
-				while (delay_timer1 && send_cmd(ACMD41, 1UL << 30)) ;	/* Wait for end of initialization with ACMD41(HCS) */
-				if (delay_timer1 && send_cmd(CMD58, 0) == 0) {		/* Check CCS bit in the OCR */
+				while (_millis() < t + timeout && send_cmd(ACMD41, 1UL << 30)) ;	/* Wait for end of initialization with ACMD41(HCS) */
+				if (_millis() < t + timeout && send_cmd(CMD58, 0) == 0) {		/* Check CCS bit in the OCR */
 					for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);
 					ty = (ocr[0] & 0x40) ? CT_SD2 | CT_BLOCK : CT_SD2;	/* Card id SDv2 */
 				}
@@ -413,8 +363,8 @@ DSTATUS disk_initialize (
 			} else {
 				ty = CT_MMC; cmd = CMD1;	/* MMCv3 (CMD1(0)) */
 			}
-			while (delay_timer1 && send_cmd(cmd, 0)) ;		/* Wait for end of initialization */
-			if (!delay_timer1 || send_cmd(CMD16, 512) != 0)	/* Set block length: 512 */
+			while (_millis() < t + timeout && send_cmd(cmd, 0)) ;		/* Wait for end of initialization */
+			if (_millis() >= t + timeout || send_cmd(CMD16, 512) != 0)	/* Set block length: 512 */
 				ty = 0;
 		}
 	}
@@ -499,15 +449,11 @@ DWORD get_fattime (void)
 static
 void xmit_spi_multi (
 	const BYTE *buff,		/* Pointer to data buffer */
-	UINT btt		/* Number of bytes to transmit (even number) */
+	UINT btx		/* Number of bytes to transmit (even number) */
 )
 {
-	do
-	{
-		xchg_spi(*buff++);
-		xchg_spi(*buff++);
-	} while (btt -= 2);
-
+	const uint8_t *b = (const uint8_t *) buff;
+	spi_write_blocking(spi0, b, btx);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -658,4 +604,3 @@ DRESULT disk_ioctl (
 
 	return res;
 }
-
