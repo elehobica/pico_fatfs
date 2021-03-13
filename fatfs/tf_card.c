@@ -1,5 +1,14 @@
 #include "tf_card.h"
-#include <stdio.h>
+
+#include "pico.h"
+#include "pico/stdlib.h"
+#include "hardware/clocks.h"
+#include "hardware/spi.h"
+#include "hardware/gpio.h"
+#include "hardware/gpio_ex.h"
+
+#include "ff.h"
+#include "diskio.h"
 
 
 /*--------------------------------------------------------------------------
@@ -54,41 +63,6 @@ static inline uint32_t _millis(void)
 /*-----------------------------------------------------------------------*/
 /* SPI controls (Platform dependent)                                     */
 /*-----------------------------------------------------------------------*/
-/// \tag::gpio_set_drive_strength[]
-// Select drive strength for this GPIO
-static void gpio_set_drive_strength(uint gpio, uint value) {
-    invalid_params_if(GPIO, gpio >= NUM_BANK0_GPIOS);
-    invalid_params_if(GPIO, value << PADS_BANK0_GPIO0_DRIVE_LSB & ~PADS_BANK0_GPIO0_DRIVE_BITS);
-    hw_write_masked(&padsbank0_hw->io[gpio],
-                   value << PADS_BANK0_GPIO0_DRIVE_LSB,
-                   PADS_BANK0_GPIO0_DRIVE_BITS
-    );
-}
-/// \end::gpio_set_drive_strength[]
-
-/// \tag::gpio_set_schmitt[]
-// Select schmitt trigger for this GPIO
-static void gpio_set_schmitt(uint gpio, uint value) {
-    invalid_params_if(GPIO, gpio >= NUM_BANK0_GPIOS);
-    invalid_params_if(GPIO, value << PADS_BANK0_GPIO1_SCHMITT_LSB & ~PADS_BANK0_GPIO1_SCHMITT_BITS);
-    hw_write_masked(&padsbank0_hw->io[gpio],
-                   value << PADS_BANK0_GPIO1_SCHMITT_LSB,
-                   PADS_BANK0_GPIO1_SCHMITT_BITS
-    );
-}
-/// \end::gpio_set_schmitt[]
-
-/// \tag::gpio_set_slew_rate[]
-// Select slew rate for this GPIO
-static void gpio_set_slew_rate(uint gpio, uint value) {
-    invalid_params_if(GPIO, gpio >= NUM_BANK0_GPIOS);
-    invalid_params_if(GPIO, value << PADS_BANK0_GPIO0_SLEWFAST_LSB & ~PADS_BANK0_GPIO0_SLEWFAST_BITS);
-    hw_write_masked(&padsbank0_hw->io[gpio],
-                   value << PADS_BANK0_GPIO0_SLEWFAST_LSB,
-                   PADS_BANK0_GPIO0_SLEWFAST_BITS
-    );
-}
-/// \end::gpio_set_slew_rate[]
 
 static inline void cs_select(uint cs_pin) {
     asm volatile("nop \n nop \n nop"); // FIXME
@@ -131,7 +105,7 @@ void init_spi(void)
 	/* Set drive strength and slew rate if needed to meet wire condition */
 	gpio_init(PIN_SPI0_SCK);
 	//gpio_pull_up(PIN_SPI0_SCK);
-	gpio_set_drive_strength(PIN_SPI0_SCK, PADS_BANK0_GPIO0_DRIVE_VALUE_2MA); // 2mA, 4mA (default), 8mA, 12mA
+	//gpio_set_drive_strength(PIN_SPI0_SCK, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
 	//gpio_set_slew_rate(PIN_SPI0_SCK, 0); // 0: SLOW (default), 1: FAST
 	gpio_set_function(PIN_SPI0_SCK, GPIO_FUNC_SPI);
 
@@ -142,13 +116,13 @@ void init_spi(void)
 
 	gpio_init(PIN_SPI0_MOSI);
 	//gpio_pull_up(PIN_SPI0_MOSI);
-	gpio_set_drive_strength(PIN_SPI0_MOSI, PADS_BANK0_GPIO0_DRIVE_VALUE_2MA); // 2mA, 4mA (default), 8mA, 12mA
+	//gpio_set_drive_strength(PIN_SPI0_MOSI, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
 	//gpio_set_slew_rate(PIN_SPI0_MOSI, 0); // 0: SLOW (default), 1: FAST
 	gpio_set_function(PIN_SPI0_MOSI, GPIO_FUNC_SPI);
 
 	gpio_init(PIN_SPI0_CS);
 	//gpio_pull_up(PIN_SPI0_CS);
-	gpio_set_drive_strength(PIN_SPI0_CS, PADS_BANK0_GPIO0_DRIVE_VALUE_2MA); // 2mA, 4mA (default), 8mA, 12mA
+	//gpio_set_drive_strength(PIN_SPI0_CS, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
 	//gpio_set_slew_rate(PIN_SPI0_CS, 0); // 0: SLOW (default), 1: FAST
 	gpio_set_dir(PIN_SPI0_CS, GPIO_OUT);
 

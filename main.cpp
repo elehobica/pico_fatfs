@@ -3,7 +3,7 @@
 
 #include "pico/stdlib.h"
 #include "hardware/uart.h"
-#include "fatfs/tf_card.h"
+#include "fatfs/ff.h"
 
 // Set PRE_ALLOCATE true to pre-allocate file clusters.
 const bool PRE_ALLOCATE = true;
