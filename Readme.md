@@ -3,7 +3,7 @@
 ## Overview
 This project is an implementation example of FatFs on Raspberry Pi Pico.
 This project supports:
-* FatFs R0.13c ([http://elm-chan.org/fsw/ff/00index_e.html](http://elm-chan.org/fsw/ff/00index_e.html))
+* FatFs R0.14a_p2 ([http://elm-chan.org/fsw/ff/00index_e.html](http://elm-chan.org/fsw/ff/00index_e.html))
 * SD card access by SPI interface
 * SD, SDHC, SDXC cards
 * FAT16, FAT32, exFAT formats
@@ -28,7 +28,7 @@ This project supports:
 | 36 | 3V3(OUT) | 3.3V | VDD (4) |
 
 #### Caution
-* SPI0_TX and SPI0_RX needs to be pull-ed up by 10Kohm.
+* SPI0_TX and SPI0_RX needs to be pull-ed up with 10Kohm.
 * Wire length between Pico and SD card is very sensitive. Short wiring as possible is desired, otherwise errors such as Mount error, Preallocation error and Write fail will occur.
 
 ### Serial (CP2102 module)
@@ -78,16 +78,16 @@ Starting write test, please wait.
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-72.5232, 163334, 3178, 7056
-72.0093, 162820, 3192, 7107
+72.8148, 188153, 3175, 7028
+72.7216, 188240, 3177, 7037
 
 Starting read test, please wait.
 
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-788.7175, 1531, 629, 648
-788.8419, 1530, 629, 648
+740.6934, 1591, 665, 690
+740.8031, 1589, 665, 690
 ```
 
 * Memorex microSD 2GB
@@ -106,16 +106,16 @@ Starting write test, please wait.
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-80.7494, 215875, 2452, 6337
-78.3305, 209957, 2457, 6512
+79.2543, 222555, 2452, 6456
+78.1408, 229029, 2457, 6549
 
 Starting read test, please wait.
 
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-740.6934, 1463, 533, 690
-740.9128, 1200, 533, 690
+757.2978, 2044, 533, 675
+757.4125, 2039, 533, 675
 ```
 
 * Transcend microSDHC 32GB (C4)
@@ -134,16 +134,16 @@ Starting write test, please wait.
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-246.7272, 210649, 952, 2073
-242.1504, 209519, 951, 2113
+273.3709, 209797, 947, 1871
+287.3379, 208416, 968, 1780
 
 Starting read test, please wait.
 
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-889.9395, 1110, 503, 574
-889.9395, 1108, 503, 574
+851.7343, 1192, 539, 600
+851.8794, 1189, 539, 600
 ```
 
 * Toshiba microSDXC 64GB (UHS-I C10)
@@ -162,16 +162,16 @@ Starting write test, please wait.
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-156.5629, 169867, 2066, 3267
-154.6404, 175743, 2071, 3309
+149.3869, 180241, 2065, 3424
+155.4869, 173010, 2069, 3291
 
 Starting read test, please wait.
 
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-663.0875, 920, 584, 771
-662.9117, 920, 584, 771
+620.7698, 960, 621, 824
+620.4617, 959, 621, 824
 ```
 
 * SanDisk microSDXC Ultra A1 64GB (UHS-I U1)
@@ -190,16 +190,16 @@ Starting write test, please wait.
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-465.8232, 20130, 878, 1098
-464.5247, 18138, 882, 1101
+464.5679, 19560, 881, 1101
+471.6234, 19881, 761, 1084
 
 Starting read test, please wait.
 
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-1362.6819, 384, 362, 374
-1362.6819, 384, 368, 375
+1238.1575, 422, 394, 412
+1238.1575, 422, 399, 412
 ```
 
 * SanDisk microSDXC Ultra A1 512GB (UHS-I U1)
@@ -218,14 +218,42 @@ Starting write test, please wait.
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-431.9005, 5581, 948, 1184
-390.0515, 138870, 950, 1311
+430.8212, 24998, 951, 1187
+428.5318, 24974, 953, 1193
 
 Starting read test, please wait.
 
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-1309.5023, 425, 378, 390
-1309.5023, 427, 378, 390
+1195.5237, 443, 413, 427
+1195.5237, 444, 415, 427
+```
+
+* SanDisk microSDXC Ultra A2 1TB (UHS-I U3)
+```
+=====================
+== pico_fatfs_test ==
+=====================
+mount ok
+Type is EXFAT
+Card size: 1023.74 GB (GB = 1E9 bytes)
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512 bytes
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+426.9217, 6290, 963, 1198
+427.0676, 32321, 958, 1197
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+1192.9563, 445, 409, 428
+1192.9563, 445, 413, 428
 ```

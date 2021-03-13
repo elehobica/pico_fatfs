@@ -379,7 +379,7 @@ DSTATUS disk_status (
 DRESULT disk_read (
 	BYTE drv,		/* Physical drive number (0) */
 	BYTE *buff,		/* Pointer to the data buffer to store read data */
-	DWORD sector,	/* Start sector number (LBA) */
+	LBA_t sector,	/* Start sector number (LBA) */
 	UINT count		/* Number of sectors to read (1..128) */
 )
 {
@@ -461,7 +461,7 @@ int xmit_datablock (	/* 1:OK, 0:Error */
 DRESULT disk_write (
 	BYTE drv,			/* Physical drive number (0) */
 	const BYTE *buff,	/* Ponter to the data to write */
-	DWORD sector,		/* Start sector number (LBA) */
+	LBA_t sector,		/* Start sector number (LBA) */
 	UINT count			/* Number of sectors to write (1..128) */
 )
 {
