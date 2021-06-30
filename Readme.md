@@ -3,7 +3,7 @@
 ## Overview
 This project is an implementation example of FatFs on Raspberry Pi Pico.
 This project supports:
-* FatFs R0.14a_p2 ([http://elm-chan.org/fsw/ff/00index_e.html](http://elm-chan.org/fsw/ff/00index_e.html))
+* FatFs R0.14b ([http://elm-chan.org/fsw/ff/00index_e.html](http://elm-chan.org/fsw/ff/00index_e.html))
 * SD card access by SPI interface
 * SD, SDHC, SDXC cards
 * FAT16, FAT32, exFAT formats
