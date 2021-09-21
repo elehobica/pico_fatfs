@@ -1,4 +1,5 @@
 # Raspberry Pi Pico FatFs Test
+![Scene](doc/Pico_FatFs_Test_Scene.jpg)
 
 ## Overview
 This project is an implementation example of FatFs on Raspberry Pi Pico.
@@ -62,34 +63,6 @@ This project supports:
 * Put "sine_wave.uf2" on RPI-RP2 drive
 
 ## Benchmark Result
-* PQI microSD 1GB
-```
-=====================
-== pico_fatfs_test ==
-=====================
-mount ok
-Type is FAT16
-Card size:    1.02 GB (GB = 1E9 bytes)
-
-FILE_SIZE_MB = 5
-BUF_SIZE = 512 bytes
-Starting write test, please wait.
-
-write speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-72.8148, 188153, 3175, 7028
-72.7216, 188240, 3177, 7037
-
-Starting read test, please wait.
-
-read speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-740.6934, 1591, 665, 690
-740.8031, 1589, 665, 690
-```
-
 * Memorex microSD 2GB
 ```
 =====================
@@ -106,26 +79,26 @@ Starting write test, please wait.
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-79.2543, 222555, 2452, 6456
-78.1408, 229029, 2457, 6549
+79.8977, 215736, 2447, 6404
+78.9926, 210883, 2460, 6457
 
 Starting read test, please wait.
 
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-757.2978, 2044, 533, 675
-757.4125, 2039, 533, 675
+827.0769, 2173, 500, 618
+827.2137, 2171, 500, 618
 ```
 
-* Transcend microSDHC 32GB (C4)
+* SanDisk microSDHC 16GB (C4)
 ```
 =====================
 == pico_fatfs_test ==
 =====================
 mount ok
 Type is FAT32
-Card size:   31.90 GB (GB = 1E9 bytes)
+Card size:   15.92 GB (GB = 1E9 bytes)
 
 FILE_SIZE_MB = 5
 BUF_SIZE = 512 bytes
@@ -134,26 +107,26 @@ Starting write test, please wait.
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-273.3709, 209797, 947, 1871
-287.3379, 208416, 968, 1780
+247.8279, 31470, 1621, 2063
+232.7164, 56411, 1596, 2197
 
 Starting read test, please wait.
 
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-851.7343, 1192, 539, 600
-851.8794, 1189, 539, 600
+792.8449, 3412, 621, 644
+792.9706, 3411, 633, 644
 ```
 
-* Toshiba microSDXC 64GB (UHS-I C10)
+* Sansung microSDHC EVO Plus 32GB (UHS-I U1)
 ```
 =====================
 == pico_fatfs_test ==
 =====================
 mount ok
-Type is EXFAT
-Card size:   61.89 GB (GB = 1E9 bytes)
+Type is FAT32
+Card size:   32.00 GB (GB = 1E9 bytes)
 
 FILE_SIZE_MB = 5
 BUF_SIZE = 512 bytes
@@ -162,16 +135,16 @@ Starting write test, please wait.
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-149.3869, 180241, 2065, 3424
-155.4869, 173010, 2069, 3291
+447.7192, 6896, 1007, 1142
+446.4797, 7589, 1024, 1145
 
 Starting read test, please wait.
 
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-620.7698, 960, 621, 824
-620.4617, 959, 621, 824
+974.9766, 1050, 403, 524
+974.4066, 1049, 402, 524
 ```
 
 * SanDisk microSDXC Ultra A1 64GB (UHS-I U1)
@@ -180,8 +153,8 @@ KB/Sec,usec,usec,usec
 == pico_fatfs_test ==
 =====================
 mount ok
-Type is EXFAT
-Card size:   63.83 GB (GB = 1E9 bytes)
+Type is FAT32
+Card size:   63.85 GB (GB = 1E9 bytes)
 
 FILE_SIZE_MB = 5
 BUF_SIZE = 512 bytes
@@ -190,16 +163,44 @@ Starting write test, please wait.
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-464.5679, 19560, 881, 1101
-471.6234, 19881, 761, 1084
+434.5281, 54624, 759, 1177
+468.7054, 28125, 761, 1091
 
 Starting read test, please wait.
 
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-1238.1575, 422, 394, 412
-1238.1575, 422, 399, 412
+1262.5454, 787, 360, 404
+1262.8644, 789, 371, 404
+```
+
+* SanDisk microSDXC Ultra A1 128GB (UHS-I C10 U1)
+```
+=====================
+== pico_fatfs_test ==
+=====================
+mount ok
+Type is EXFAT
+Card size:  127.83 GB (GB = 1E9 bytes)
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512 bytes
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+446.6393, 37701, 951, 1145
+444.8114, 36075, 960, 1150
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+1310.1887, 416, 381, 389
+1310.1887, 414, 381, 389
 ```
 
 * SanDisk microSDXC Ultra A1 512GB (UHS-I U1)
@@ -218,19 +219,19 @@ Starting write test, please wait.
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-430.8212, 24998, 951, 1187
-428.5318, 24974, 953, 1193
+430.6728, 5316, 952, 1187
+430.5244, 25833, 953, 1188
 
 Starting read test, please wait.
 
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-1195.5237, 443, 413, 427
-1195.5237, 444, 415, 427
+1304.3778, 408, 366, 391
+1304.7181, 408, 378, 391
 ```
 
-* SanDisk microSDXC Ultra A2 1TB (UHS-I U3)
+* SanDisk microSDXC Ultra A2 1TB (UHS-I U3 V30)
 ```
 =====================
 == pico_fatfs_test ==
@@ -246,16 +247,16 @@ Starting write test, please wait.
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-426.9217, 6290, 963, 1198
-427.0676, 32321, 958, 1197
+417.6842, 32387, 989, 1224
+414.7391, 19074, 986, 1233
 
 Starting read test, please wait.
 
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-1192.9563, 445, 409, 428
-1192.9563, 445, 413, 428
+1288.9095, 412, 368, 396
+1289.2418, 412, 381, 396
 ```
 
 ## Application Example
