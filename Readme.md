@@ -62,7 +62,14 @@ This project supports:
 ```
 * Put "sine_wave.uf2" on RPI-RP2 drive
 
-## Benchmark Result
+## Macro Definitions in tf_card.c
+### CLK_FAST
+```
+#define CLK_FAST	(50 * MHZ)
+```
+ SPI fast clock frequency is set to 50MHz as default. However, it could need to be reduced to around 20MHz~ depending on SD card and SPI wiring condition.
+
+## Benchmark Result (CLK_FAST = 50 MHz)
 * Memorex microSD 2GB
 ```
 =====================
