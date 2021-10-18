@@ -62,7 +62,27 @@ This project supports:
 ```
 * Put "sine_wave.uf2" on RPI-RP2 drive
 
-## Macro Definitions in tf_card.c
+## Customize IO buffer init
+By default, void init_spi() in tf_card.c runs for IO buffer initialization. User can re-define to customize it when needed.
+
+in C++ code (main.cpp)
+```
+extern "C" {
+void init_spi(void)
+{
+  ...
+}
+}
+```
+or in C code
+```
+void init_spi(void)
+{
+  ...
+}
+```
+
+## Macro Definitions in tf_card.h
 ### CLK_FAST
 ```
 #define CLK_FAST	(50 * MHZ)

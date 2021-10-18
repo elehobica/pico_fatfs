@@ -47,6 +47,14 @@ static void error_blink(uint led, int count)
     }
 }
 
+/*
+extern "C" {
+void init_spi(void)
+{
+}
+}
+*/
+
 int main()
 {
     FATFS fs;

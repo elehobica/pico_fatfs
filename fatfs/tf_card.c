@@ -114,7 +114,7 @@ static void CS_LOW(void)
 }
 
 /* Initialize MMC interface */
-static
+__attribute__((weak))
 void init_spi(void)
 {
 	/* GPIO pin configuration */
