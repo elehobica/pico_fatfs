@@ -11,6 +11,24 @@
 
 
 /*--------------------------------------------------------------------------
+   SPI and Pin selection
+---------------------------------------------------------------------------*/
+
+#if defined(USE_SPI0)
+spi_inst_t *spi = spi0;
+#define PIN_SPI_MISO   PIN_SPI0_MISO
+#define PIN_SPI_CS     PIN_SPI0_CS
+#define PIN_SPI_SCK    PIN_SPI0_SCK
+#define PIN_SPI_MOSI   PIN_SPI0_MOSI
+#elif defined(USE_SPI1)
+spi_inst_t *spi = spi1;
+#define PIN_SPI_MISO   PIN_SPI1_MISO
+#define PIN_SPI_CS     PIN_SPI1_CS
+#define PIN_SPI_SCK    PIN_SPI1_SCK
+#define PIN_SPI_MOSI   PIN_SPI1_MOSI
+#endif
+
+/*--------------------------------------------------------------------------
 
    Module Private Functions
 
@@ -46,7 +64,7 @@
 #define CT_BLOCK       0x08            /* Block addressing */
 
 #define CLK_SLOW	(100 * KHZ)
-#define CLK_FAST	(50 * MHZ)
+//#define CLK_FAST	(50 * MHZ) // moved to tf_card.h
 
 static volatile
 DSTATUS Stat = STA_NOINIT;	/* Physical drive status */
@@ -77,22 +95,22 @@ static inline void cs_deselect(uint cs_pin) {
 
 static void FCLK_SLOW(void)
 {
-    spi_set_baudrate(spi0, CLK_SLOW);
+    spi_set_baudrate(spi, CLK_SLOW);
 }
 
 static void FCLK_FAST(void)
 {
-    spi_set_baudrate(spi0, CLK_FAST);
+    spi_set_baudrate(spi, CLK_FAST);
 }
 
 static void CS_HIGH(void)
 {
-    cs_deselect(PIN_SPI0_CS);
+    cs_deselect(PIN_SPI_CS);
 }
 
 static void CS_LOW(void)
 {
-    cs_select(PIN_SPI0_CS);
+    cs_select(PIN_SPI_CS);
 }
 
 /* Initialize MMC interface */
@@ -102,40 +120,40 @@ void init_spi(void)
 	/* GPIO pin configuration */
 	/* pull up of MISO is MUST (10Kohm external pull up is recommended) */
 	/* Set drive strength and slew rate if needed to meet wire condition */
-	gpio_init(PIN_SPI0_SCK);
-	gpio_disable_pulls(PIN_SPI0_SCK);
-	//gpio_pull_up(PIN_SPI0_SCK);
-	//gpio_set_drive_strength(PIN_SPI0_SCK, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
-	//gpio_set_slew_rate(PIN_SPI0_SCK, 0); // 0: SLOW (default), 1: FAST
-	gpio_set_function(PIN_SPI0_SCK, GPIO_FUNC_SPI);
+	gpio_init(PIN_SPI_SCK);
+	gpio_disable_pulls(PIN_SPI_SCK);
+	//gpio_pull_up(PIN_SPI_SCK);
+	//gpio_set_drive_strength(PIN_SPI_SCK, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
+	//gpio_set_slew_rate(PIN_SPI_SCK, 0); // 0: SLOW (default), 1: FAST
+	gpio_set_function(PIN_SPI_SCK, GPIO_FUNC_SPI);
 
-	gpio_init(PIN_SPI0_MISO);
-	gpio_disable_pulls(PIN_SPI0_MISO);
-	//gpio_pull_up(PIN_SPI0_MISO);
-	//gpio_set_schmitt(PIN_SPI0_MISO, 1); // 0: Off, 1: On (default)
-	gpio_set_function(PIN_SPI0_MISO, GPIO_FUNC_SPI);
+	gpio_init(PIN_SPI_MISO);
+	gpio_disable_pulls(PIN_SPI_MISO);
+	//gpio_pull_up(PIN_SPI_MISO);
+	//gpio_set_schmitt(PIN_SPI_MISO, 1); // 0: Off, 1: On (default)
+	gpio_set_function(PIN_SPI_MISO, GPIO_FUNC_SPI);
 
-	gpio_init(PIN_SPI0_MOSI);
-	gpio_disable_pulls(PIN_SPI0_MOSI);
-	//gpio_pull_up(PIN_SPI0_MOSI);
-	//gpio_set_drive_strength(PIN_SPI0_MOSI, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
-	//gpio_set_slew_rate(PIN_SPI0_MOSI, 0); // 0: SLOW (default), 1: FAST
-	gpio_set_function(PIN_SPI0_MOSI, GPIO_FUNC_SPI);
+	gpio_init(PIN_SPI_MOSI);
+	gpio_disable_pulls(PIN_SPI_MOSI);
+	//gpio_pull_up(PIN_SPI_MOSI);
+	//gpio_set_drive_strength(PIN_SPI_MOSI, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
+	//gpio_set_slew_rate(PIN_SPI_MOSI, 0); // 0: SLOW (default), 1: FAST
+	gpio_set_function(PIN_SPI_MOSI, GPIO_FUNC_SPI);
 
-	gpio_init(PIN_SPI0_CS);
-	gpio_disable_pulls(PIN_SPI0_CS);
-	//gpio_pull_up(PIN_SPI0_CS);
-	//gpio_set_drive_strength(PIN_SPI0_CS, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
-	//gpio_set_slew_rate(PIN_SPI0_CS, 0); // 0: SLOW (default), 1: FAST
-	gpio_set_dir(PIN_SPI0_CS, GPIO_OUT);
+	gpio_init(PIN_SPI_CS);
+	gpio_disable_pulls(PIN_SPI_CS);
+	//gpio_pull_up(PIN_SPI_CS);
+	//gpio_set_drive_strength(PIN_SPI_CS, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
+	//gpio_set_slew_rate(PIN_SPI_CS, 0); // 0: SLOW (default), 1: FAST
+	gpio_set_dir(PIN_SPI_CS, GPIO_OUT);
 
 	/* chip _select invalid*/
 	CS_HIGH();
 
-	spi_init(spi0, CLK_SLOW);
+	spi_init(spi, CLK_SLOW);
 
-	/* SPI0 parameter config */
-	spi_set_format(spi0,
+	/* SPI parameter config */
+	spi_set_format(spi,
 		8, /* data_bits */
 		SPI_CPOL_0, /* cpol */
 		SPI_CPHA_0, /* cpha */
@@ -150,7 +168,7 @@ BYTE xchg_spi (
 )
 {
 	uint8_t *buff = (uint8_t *) &dat;
-	spi_write_read_blocking(spi0, buff, buff, 1);
+	spi_write_read_blocking(spi, buff, buff, 1);
 	return (BYTE) *buff;
 }
 
@@ -163,7 +181,7 @@ void rcvr_spi_multi (
 )
 {
 	uint8_t *b = (uint8_t *) buff;
-	spi_read_blocking(spi0, 0xff, b, btr);
+	spi_read_blocking(spi, 0xff, b, btr);
 }
 
 
@@ -429,7 +447,7 @@ void xmit_spi_multi (
 )
 {
 	const uint8_t *b = (const uint8_t *) buff;
-	spi_write_blocking(spi0, b, btx);
+	spi_write_blocking(spi, b, btx);
 }
 
 /*-----------------------------------------------------------------------*/
