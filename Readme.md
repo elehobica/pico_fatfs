@@ -88,6 +88,7 @@ void init_spi(void)
 #define CLK_FAST	(50 * MHZ)
 ```
  SPI fast clock frequency is set to 50MHz as default. However, it could need to be reduced to around 20MHz~ depending on SD card and SPI wiring condition.
+ The actual SPI clock frequency is set to clk_peri (= 125.0 MHz) / N, which is determined by spi_set_baudrate() in ['pico-sdk/src/rp2_common/hardware_spi/spi.c'](https://github.com/raspberrypi/pico-sdk/blob/2062372d203b372849d573f252cf7c6dc2800c0a/src/rp2_common/hardware_spi/spi.c#L41).
 
 ## Benchmark Result (CLK_FAST = 50 MHz)
 * Memorex microSD 2GB

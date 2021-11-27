@@ -4,6 +4,8 @@
 #define USE_SPI0 // to use PIN_SPI0_xxx
 //#define USE_SPI1 // to use PIN_SPI1_xxx
 
+// CLK_FAST: actually set to clk_peri (= 125.0 MHz) / N,
+// which is determined by spi_set_baudrate() in pico-sdk/src/rp2_common/hardware_spi/spi.c
 #define CLK_FAST	(50 * MHZ)
 
 /* SPI pin assignment */
