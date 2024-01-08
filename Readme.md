@@ -41,8 +41,10 @@ This project supports:
 
 ## How to build
 * See ["Getting started with Raspberry Pi Pico"](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf)
-* Build is confirmed only in Developer Command Prompt for VS 2019 and Visual Studio Code on Windows enviroment
-* Put "pico-sdk" and "pico-examples" on the same level with this project folder.
+* Put "pico-sdk", "pico-examples" (, "pico-extras" and "pico-playground") on the same level with this project folder.
+* Build is confirmed in Developer Command Prompt for VS 2022 and Visual Studio Code on Windows enviroment
+* Confirmed with Pico SDK 1.4.0, cmake-3.27.2-windows-x86_64 and gcc-arm-none-eabi-10.3-2021.10-win32
+* Set directory paths of "pico-sdk" and "pico-extras" to environment variables: PICO_SDK_PATH and PICO_EXTRAS_PATH
 ```
 > git clone -b master https://github.com/raspberrypi/pico-sdk.git
 > cd pico-sdk
@@ -50,17 +52,17 @@ This project supports:
 > cd ..
 > git clone -b master https://github.com/raspberrypi/pico-examples.git
 > 
-> git clone -b main https://github.com/elehobica/pico_fatfs_test.git
+> git clone -b main https://github.com/elehobica/pico_fatfs.git
 ```
-* Lanuch "Developer Command Prompt for VS 2019"
+* Lanuch "Developer Command Prompt for VS 2022"
 ```
-> cd pico_fatfs_test
+> cd pico_fatfs/test
 > mkdir build
 > cd build
 > cmake -G "NMake Makefiles" ..
 > nmake
 ```
-* Put "sine_wave.uf2" on RPI-RP2 drive
+* Put "pico_fatfs_test.uf2" on RPI-RP2 drive
 
 ## Customize IO buffer init
 By default, void init_spi() in tf_card.c runs for IO buffer initialization. User can re-define to customize it when needed.
