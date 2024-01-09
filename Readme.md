@@ -183,8 +183,8 @@ KB/Sec,usec,usec,usec
 == pico_fatfs_test ==
 =====================
 mount ok
-Type is FAT32
-Card size:   63.85 GB (GB = 1E9 bytes)
+Type is EXFAT
+Card size:   63.83 GB (GB = 1E9 bytes)
 
 FILE_SIZE_MB = 5
 BUF_SIZE = 512 bytes
@@ -193,16 +193,16 @@ Starting write test, please wait.
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-434.5281, 54624, 759, 1177
-468.7054, 28125, 761, 1091
+457.3436, 39688, 890, 1118
+459.7830, 19127, 896, 1112
 
 Starting read test, please wait.
 
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-1262.5454, 787, 360, 404
-1262.8644, 789, 371, 404
+1226.3135, 426, 398, 416
+1226.0127, 425, 408, 416
 ```
 
 * SanDisk microSDXC Ultra A1 128GB (UHS-I C10 U1)
