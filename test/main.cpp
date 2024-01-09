@@ -3,6 +3,7 @@
 
 #include "pico/stdlib.h"
 #include "hardware/uart.h"
+#include "tf_card.h"
 #include "fatfs/ff.h"
 
 // Set PRE_ALLOCATE true to pre-allocate file clusters.
@@ -47,6 +48,7 @@ static void error_blink(uint led, int count)
     }
 }
 
+// uncomment below with edit if non-default GPIO attributes are needed
 /*
 extern "C" {
 void init_spi(void)
@@ -94,6 +96,21 @@ int main()
     printf("=====================\n");
     printf("== pico_fatfs_test ==\n");
     printf("=====================\n");
+
+    // uncomment below with edit if non-default configuration is needed
+    /*
+    pico_fatfs_spi_config_t config = {
+        spi0,
+        CLK_SLOW_DEFAULT,
+        CLK_FAST_DEFAULT,
+        PIN_SPI0_MISO_DEFAULT,
+        PIN_SPI0_CS_DEFAULT,
+        PIN_SPI0_SCK_DEFAULT,
+        PIN_SPI0_MOSI_DEFAULT,
+        false
+    };
+    pico_fatfs_set_config(&config);
+    */
 
     fr = f_mount(&fs, "", 1);
     if (fr != FR_OK) {
