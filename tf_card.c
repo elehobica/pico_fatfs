@@ -3,6 +3,7 @@
 #include "ff.h"
 #include "diskio.h"
 
+#include "pico/stdlib.h"
 
 /*--------------------------------------------------------------------------
    SPI and Pin selection

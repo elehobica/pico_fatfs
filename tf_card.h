@@ -1,7 +1,5 @@
 #pragma once
 
-#include "pico.h"
-#include "pico/stdlib.h"
 #include "hardware/spi.h"
 #include "hardware/clocks.h"
 
