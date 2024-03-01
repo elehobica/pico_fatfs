@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.13)
 
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 include($ENV{PICO_EXTRAS_PATH}/external/pico_extras_import.cmake)
