@@ -1,4 +1,4 @@
-# Raspberry Pi Pico FatFs Test
+# FatFs library for Raspberry Pi Pico
 ![Scene](doc/Pico_FatFs_Test_Scene.jpg)
 
 ## Overview
@@ -8,10 +8,10 @@ This library supports:
 * SD card access by SPI interface
 * SD, SDHC, SDXC cards
 * FAT16, FAT32, exFAT formats
-* write / read speed benchmark
+* test code for write / read speed benchmark
 
 ## Supported Board
-* Raspberry Pi Pico
+* Raspberry Pi Pico and Raspberry Pi Pico W
 
 ## Ciruit Diagram
 ![Circuit Diagram](doc/Pico_FatFs_Test_Schematic.png)

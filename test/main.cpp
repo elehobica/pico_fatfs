@@ -1,10 +1,17 @@
 #include <cstdint>
 #include <cstdio>
 
-#include "pico/stdlib.h"
+#include "hardware/adc.h"
 #include "hardware/uart.h"
+#include "pico/stdlib.h"
+#include "pico/cyw43_arch.h"
+
 #include "tf_card.h"
-#include "fatfs/ff.h"
+#include "ff.h"
+
+const uint32_t PIN_LED = 25;  // only for Pico
+bool _picoW = false;
+bool _led = false;
 
 // Set PRE_ALLOCATE true to pre-allocate file clusters.
 const bool PRE_ALLOCATE = true;
@@ -34,16 +41,59 @@ const uint32_t FILE_SIZE = 1000000UL*FILE_SIZE_MB;
 uint32_t buf32[(BUF_SIZE + 3)/4];
 uint8_t* buf = (uint8_t*)buf32;
 
-static void error_blink(uint led, int count)
+static bool _check_pico_w()
+{
+    adc_init();
+    auto dir = gpio_get_dir(29);
+    auto fnc = gpio_get_function(29);
+    adc_gpio_init(29);
+    adc_select_input(3);
+    auto adc29 = adc_read();
+    gpio_set_function(29, fnc);
+    gpio_set_dir(29, dir);
+
+    dir = gpio_get_dir(25);
+    fnc = gpio_get_function(25);
+    gpio_init(25);
+    gpio_set_dir(25, GPIO_IN);
+    auto gp25 = gpio_get(25);
+    gpio_set_function(25, fnc);
+    gpio_set_dir(25, dir);
+
+    if (gp25) {
+        return true; // Can't tell, so assume yes
+    } else if (adc29 < 200) {
+        return true; // PicoW
+    } else {
+        return false;
+    }
+}
+
+static void _set_led(bool flag)
+{
+    if (_picoW) {
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, flag);
+    } else {
+        gpio_put(PIN_LED, flag);
+    }
+    _led = flag;
+}
+
+static void _toggle_led()
+{
+    _set_led(!_led);
+}
+
+static void _error_blink(int count)
 {
     while (true) {
         for (int i = 0; i < count; i++) {
-            gpio_put(led, 1);
+            _set_led(true);
             sleep_ms(250);
-            gpio_put(led, 0);
+            _set_led(false);
             sleep_ms(250);
         }
-        gpio_put(led, 0);
+        _set_led(false);
         sleep_ms(500);
     }
 }
@@ -72,8 +122,23 @@ int main()
     uint32_t totalLatency;
     bool skipLatency;
 
-
     stdio_init_all();
+    _picoW = _check_pico_w();
+
+    // Pico / Pico W dependencies
+    if (_picoW) {
+        if (cyw43_arch_init()) {  // this is needed for driving LED
+            printf("cyw43 init failed\r\n");
+            return 1;
+        }
+        printf("Pico W\r\n");
+    } else {
+        printf("Pico\r\n");
+        // LED
+        gpio_init(PIN_LED);
+        gpio_set_dir(PIN_LED, GPIO_OUT);
+    }
+    _set_led(false);
 
     // Initialise UART 0
     uart_init(uart0, 115200);
@@ -81,9 +146,6 @@ int main()
     gpio_set_function(0, GPIO_FUNC_UART);
     gpio_set_function(1, GPIO_FUNC_UART);
 
-    const uint32_t LED_PIN = 25;
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
 
     // Discard any input.
     while (uart_is_readable(uart0)) {
@@ -113,7 +175,7 @@ int main()
     fr = f_mount(&fs, "", 1);
     if (fr != FR_OK) {
         printf("mount error %d\n", fr);
-        error_blink(LED_PIN, 1);
+        _error_blink(1);
     }
     printf("mount ok\n");
 
@@ -151,7 +213,7 @@ int main()
     fr = f_open(&fil, "bench.dat", FA_READ | FA_WRITE | FA_CREATE_ALWAYS);
     if (fr != FR_OK) {
         printf("open error %d\n", fr);
-        error_blink(LED_PIN, 2);
+        _error_blink(2);
     }
 
     // fill buf with known data
@@ -176,18 +238,18 @@ int main()
         fr = f_lseek(&fil, 0);
         if (fr != FR_OK) {
             printf("lseek error %d\n", fr);
-            error_blink(LED_PIN, 3);
+            _error_blink(3);
         }
         fr = f_truncate(&fil);
         if (fr != FR_OK) {
             printf("truncate error %d\n", fr);
-            error_blink(LED_PIN, 4);
+            _error_blink(4);
         }
         if (PRE_ALLOCATE) {
             fr = f_expand(&fil, FILE_SIZE, 0);
             if (fr != FR_OK) {
                 printf("preallocate error %d\n", fr);
-                error_blink(LED_PIN, 5);
+                _error_blink(5);
             }
         }
         maxLatency = 0;
@@ -200,7 +262,7 @@ int main()
             fr = f_write(&fil, buf, BUF_SIZE, &bw);
             if (fr != FR_OK || bw != BUF_SIZE) {
                 printf("write failed %d %d\n", fr, bw);
-                error_blink(LED_PIN, 6);
+                _error_blink(6);
             }
             m = to_us_since_boot(get_absolute_time()) - m;
             totalLatency += m;
@@ -215,12 +277,12 @@ int main()
                     minLatency = m;
                 }
             }
-            if (i % 10 == 0) gpio_xor_mask(1u<<LED_PIN);
+            if (i % 10 == 0) _toggle_led();
         }
         fr = f_sync(&fil);
         if (fr != FR_OK) {
             printf("f_sync failed %d\n", fr);
-            error_blink(LED_PIN, 7);
+            _error_blink(7);
         }
         t = to_ms_since_boot(get_absolute_time()) - t;
         s = f_size(&fil);
@@ -238,7 +300,7 @@ int main()
         fr = f_rewind(&fil);
         if (fr != FR_OK) {
             printf("rewind failed %d\n", fr);
-            error_blink(LED_PIN, 8);
+            _error_blink(8);
         }
         maxLatency = 0;
         minLatency = 9999999;
@@ -251,13 +313,13 @@ int main()
             fr = f_read(&fil, buf, BUF_SIZE, &br);
             if (fr != FR_OK || br != BUF_SIZE) {
                 printf("read failed %d %d\n", fr, br);
-                error_blink(LED_PIN, 9);
+                _error_blink(9);
             }
             m = to_us_since_boot(get_absolute_time()) - m;
             totalLatency += m;
             if (buf[BUF_SIZE-1] != '\n') {
                 printf("data check error");
-                error_blink(LED_PIN, 10);
+                _error_blink(10);
             }
             if (skipLatency) {
                 skipLatency = false;
@@ -269,7 +331,7 @@ int main()
                     minLatency = m;
                 }
             }
-            if (i % 10 == 0) gpio_xor_mask(1u<<LED_PIN);
+            if (i % 10 == 0) _toggle_led();
         }
         t = to_ms_since_boot(get_absolute_time()) - t;
         s = f_size(&fil);
@@ -281,9 +343,9 @@ int main()
 
     // OK blink
     while (true) {
-        gpio_put(LED_PIN, 1);
+        _set_led(true);
         sleep_ms(1000);
-        gpio_put(LED_PIN, 0);
+        _set_led(false);
         sleep_ms(1000);
     }
 
