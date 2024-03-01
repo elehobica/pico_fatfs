@@ -4,7 +4,7 @@
 ## Overview
 FatFs library on Raspberry Pi Pico.
 This library supports:
-* FatFs R0.14b ([http://elm-chan.org/fsw/ff/00index_e.html](http://elm-chan.org/fsw/ff/00index_e.html))
+* FatFs R0.15 ([http://elm-chan.org/fsw/ff/00index_e.html](http://elm-chan.org/fsw/ff/00index_e.html))
 * SD card access by SPI interface
 * SD, SDHC, SDXC cards
 * FAT16, FAT32, exFAT formats

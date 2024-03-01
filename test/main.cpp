@@ -123,8 +123,16 @@ int main()
     bool skipLatency;
 
     stdio_init_all();
-    _picoW = _check_pico_w();
 
+    // Initialise UART 0
+    uart_init(uart0, 115200);
+    // Set the GPIO pin mux to the UART - 0 is TX, 1 is RX
+    gpio_set_function(0, GPIO_FUNC_UART);
+    gpio_set_function(1, GPIO_FUNC_UART);
+
+    printf("\n");
+
+    _picoW = _check_pico_w();
     // Pico / Pico W dependencies
     if (_picoW) {
         if (cyw43_arch_init()) {  // this is needed for driving LED
@@ -140,18 +148,11 @@ int main()
     }
     _set_led(false);
 
-    // Initialise UART 0
-    uart_init(uart0, 115200);
-    // Set the GPIO pin mux to the UART - 0 is TX, 1 is RX
-    gpio_set_function(0, GPIO_FUNC_UART);
-    gpio_set_function(1, GPIO_FUNC_UART);
-
 
     // Discard any input.
     while (uart_is_readable(uart0)) {
         uart_getc(uart0);
     }
-    printf("\n");
     printf("Type any character to start\n");
     while (!uart_is_readable_within_us(uart0, 1000));
 
