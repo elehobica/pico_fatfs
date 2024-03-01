@@ -27,7 +27,7 @@ typedef struct _pico_fatfs_spi_config_t {
     uint        pin_cs;
     uint        pin_sck;
     uint        pin_mosi;
-    bool        pullup;  // miso, mosi pins only
+    bool        pullup;     // miso, mosi pins only
 } pico_fatfs_spi_config_t;
 
 #ifdef __cplusplus

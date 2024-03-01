@@ -16,7 +16,7 @@ static pico_fatfs_spi_config_t _config = {
     PIN_SPI0_CS_DEFAULT,
     PIN_SPI0_SCK_DEFAULT,
     PIN_SPI0_MOSI_DEFAULT,
-    false
+    true
 };
 
 /*--------------------------------------------------------------------------
@@ -103,7 +103,7 @@ static void CS_LOW(void)
 
 /* Initialize MMC interface */
 __attribute__((weak))
-void init_spi(void)
+void pico_fatfs_init_spi(void)
 {
     /* GPIO pin configuration */
     /* pull up of MISO is MUST (10Kohm external pull up is recommended) */
@@ -331,7 +331,7 @@ DSTATUS disk_initialize (
 
 
     if (drv) return STA_NOINIT;         /* Supports only drive 0 */
-    init_spi();                         /* Initialize SPI */
+    pico_fatfs_init_spi();              /* Initialize SPI */
     sleep_ms(10);
 
     if (Stat & STA_NODISK) return Stat; /* Is card existing in the soket? */

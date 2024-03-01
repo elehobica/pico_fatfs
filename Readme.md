@@ -14,7 +14,7 @@ This library supports:
 * Raspberry Pi Pico
 
 ## Ciruit Diagram
-![Circuit Diagram](doc/Pico_FatFs_Test_Schematic_wo_pullup.png)
+![Circuit Diagram](doc/Pico_FatFs_Test_Schematic.png)
 
 ## Pin Assignment
 ### microSD card
@@ -65,33 +65,55 @@ This library supports:
 ```
 * Put "pico_fatfs_test.uf2" on RPI-RP2 drive
 
-## Customize IO buffer init
-By default, void init_spi() in tf_card.c runs for IO buffer initialization. User can re-define to customize it when needed.
+## Configuration
+Configure clock and pin settings by `pico_fatfs_set_config()` with `pico_fatfs_spi_config_t`
 
-in C++ code (main.cpp)
+```
+  pico_fatfs_spi_config_t config = {
+      spi0,                   // spi_inst
+      CLK_SLOW_DEFAULT,       // clk_slow
+      CLK_FAST_DEFAULT,       // clk_fast
+      PIN_SPI0_MISO_DEFAULT,  // pin_miso
+      PIN_SPI0_CS_DEFAULT,    // pin_cs
+      PIN_SPI0_SCK_DEFAULT,   // pin_sck
+      PIN_SPI0_MOSI_DEFAULT,  // pin_mosi
+      true                    // pullup
+  };
+  pico_fatfs_set_config(&config);
+```
+
+### Clock confguration
+* By default, `clk_slow` is set to `100 * KHZ` and `clk_fast` is set to `50 * MHZ`.
+* The actual SPI clock frequency is set to clk_peri / N = 125.0 MHz / N, which is determined by spi_set_baudrate() in ['pico-sdk/src/rp2_common/hardware_spi/spi.c'](https://github.com/raspberrypi/pico-sdk/blob/2062372d203b372849d573f252cf7c6dc2800c0a/src/rp2_common/hardware_spi/spi.c#L41).
+* Thus, to choose actually slower clock as `clk_fast`, smaller value than 31.25 MHz should be configured.
+
+### Pin assignment
+* Choose `spi0` or `spi1` and designate corresponding pin assignment for `pin_miso`, `pin_cs`, `pin_sck` and `pin_mosi`.
+* Pin selection must follow pin assignment rule defined by `spi0` or `spi1`. See comments PIN_SPIx_XXX_DEFAULT in [tf_card.h](tf_card.h).
+
+### Pullup option
+* set `true` for MISO, MOSI to use internal pullup. (recommended)
+* set `false` for MISO, MOSI when external pullup resistors attached. [external pullup](doc/Pico_FatFs_Test_Schematic_w_pullup.png)
+
+### Other customization for pin configuration
+By default, `void pico_fatfs_init_spi()` in [tf_card.c](tf_card.c) runs for IO buffer initialization. User can override it by the re-definition to get more detail IO buffer configuration. However, the customizations such as slew rate and/or drive strength rarely improve the timing problem of SPI interface, therefore, physical approach such as shorter wiring would be recommended.
+
+in C++ code (e.g. main.cpp)
 ```
 extern "C" {
-void init_spi(void)
+void pico_fatfs_init_spi(void)
 {
   ...
 }
 }
 ```
-or in C code
+or in C code (e.g. main.c)
 ```
-void init_spi(void)
+void pico_fatfs_init_spi(void)
 {
   ...
 }
 ```
-
-## Configuration Tips
-### CLK_FAST
-```
-#define CLK_FAST_DEFAULT    (50 * MHZ)
-```
- SPI fast clock frequency is set to 50MHz as default. However, it could need to be reduced to around 20MHz~ depending on SD card and SPI wiring condition.
- The actual SPI clock frequency is set to clk_peri (= 125.0 MHz) / N, which is determined by spi_set_baudrate() in ['pico-sdk/src/rp2_common/hardware_spi/spi.c'](https://github.com/raspberrypi/pico-sdk/blob/2062372d203b372849d573f252cf7c6dc2800c0a/src/rp2_common/hardware_spi/spi.c#L41).
 
 ## Benchmark Result (CLK_FAST = 50 MHz)
 * Memorex microSD 2GB
