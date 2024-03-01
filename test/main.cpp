@@ -97,8 +97,7 @@ int main()
     printf("== pico_fatfs_test ==\n");
     printf("=====================\n");
 
-    // uncomment below with edit if non-default configuration is needed
-    /*
+    // modify below if customized configuration is needed
     pico_fatfs_spi_config_t config = {
         spi0,
         CLK_SLOW_DEFAULT,
@@ -107,10 +106,9 @@ int main()
         PIN_SPI0_CS_DEFAULT,
         PIN_SPI0_SCK_DEFAULT,
         PIN_SPI0_MOSI_DEFAULT,
-        false
+        true  // use internal pullup
     };
     pico_fatfs_set_config(&config);
-    */
 
     fr = f_mount(&fs, "", 1);
     if (fr != FR_OK) {

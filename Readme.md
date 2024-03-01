@@ -14,7 +14,7 @@ This library supports:
 * Raspberry Pi Pico
 
 ## Ciruit Diagram
-![Circuit Diagram](doc/Pico_FatFs_Test_Schematic.png)
+![Circuit Diagram](doc/Pico_FatFs_Test_Schematic_wo_pullup.png)
 
 ## Pin Assignment
 ### microSD card
@@ -29,7 +29,6 @@ This library supports:
 | 36 | 3V3(OUT) | 3.3V | VDD (4) | 3V3 |
 
 #### Caution
-* SPI0_TX and SPI0_RX needs to be pull-ed up with 10Kohm.
 * Wire length between Pico and SD card is very sensitive. Short wiring as possible is desired, otherwise errors such as Mount error, Preallocation error and Write fail will occur.
 
 ### Serial (CP2102 module)
