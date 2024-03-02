@@ -101,7 +101,7 @@ static void _error_blink(int count)
 // uncomment below with edit if non-default GPIO attributes are needed
 /*
 extern "C" {
-void init_spi(void)
+void pico_fatfs_init_spi(void)
 {
 }
 }
