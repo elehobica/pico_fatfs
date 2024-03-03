@@ -432,6 +432,7 @@ DRESULT disk_read (
 
 #if !FF_FS_READONLY && !FF_FS_NORTC
 /* get the current time */
+__attribute__((weak))
 DWORD get_fattime (void)
 {
     return 0;
