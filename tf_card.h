@@ -40,6 +40,7 @@ extern "C" {
 * @param[in] config the pointer of pico_fatfs_spi_config_t to configure with
 */
 void pico_fatfs_set_config(pico_fatfs_spi_config_t *config);
+int pico_fatfs_reboot_spi(void);
 
 #ifdef __cplusplus
 }
