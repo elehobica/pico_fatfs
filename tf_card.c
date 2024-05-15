@@ -604,3 +604,8 @@ void pico_fatfs_set_config(pico_fatfs_spi_config_t *config)
 {
     _config = *config;
 }
+
+int pico_fatfs_reboot_spi(void)
+{
+    _select();
+}
