@@ -115,6 +115,10 @@ void pico_fatfs_init_spi(void)
 }
 ```
 
+### Function customization
+User can also override following functions as they are defined with _weak_ attribute.
+* `DWORD get_fattime()` in [tf_card.c](tf_card.c)
+
 ## Benchmark Result (CLK_FAST = 50 MHz)
 * Memorex microSD 2GB
 ```
