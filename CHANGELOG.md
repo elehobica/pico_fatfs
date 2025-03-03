@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+* Add support pico-sdk 2.1.1
 
 ## [fatfs-R0.15-1.0.1] - 2025-03-03
 ### Changed
