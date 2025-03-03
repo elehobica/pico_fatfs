@@ -1,5 +1,15 @@
 cmake_minimum_required(VERSION 3.13)
-set(PICO_BOARD pico_w)
+
+# define "w" board to use cyw43_arch_xxx() function
+if(PICO_BOARD)
+    unset(PICO_BOARD)
+endif()
+if(PICO_PLATFORM STREQUAL rp2350)
+    set(PICO_BOARD pico2_w)
+else()
+    set(PICO_BOARD pico_w)
+endif()
+
 
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 include($ENV{PICO_EXTRAS_PATH}/external/pico_extras_import.cmake)

@@ -1,8 +1,8 @@
-# FatFs library for Raspberry Pi Pico
+# FatFs library for Raspberry Pi Pico / Pico 2
 ![Scene](doc/Pico_FatFs_Test_Scene.jpg)
 
 ## Overview
-FatFs library on Raspberry Pi Pico.
+FatFs library on Raspberry Pi Pico / Pico 2.
 This library supports:
 * FatFs R0.15 ([http://elm-chan.org/fsw/ff/00index_e.html](http://elm-chan.org/fsw/ff/00index_e.html))
 * SD card access by SPI interface
@@ -12,6 +12,7 @@ This library supports:
 
 ## Supported Board
 * Raspberry Pi Pico and Raspberry Pi Pico W
+* Raspberry Pi Pico 2 and Raspberry Pi Pico 2W
 
 ## Ciruit Diagram
 ![Circuit Diagram](doc/Pico_FatFs_Test_Schematic.png)
@@ -61,7 +62,8 @@ This library supports:
 ```
 > cd pico_fatfs/test
 > mkdir build && cd build
-> cmake -G "NMake Makefiles" ..
+> cmake -G "NMake Makefiles" ..  ; (for Raspberry Pi Pico 1 series)
+> cmake -G "NMake Makefiles" -DPICO_PLATFORM=rp2350 ..  ; (for Raspberry Pi Pico 2)
 > nmake
 ```
 * Put "pico_fatfs_test.uf2" on RPI-RP2 drive
@@ -71,7 +73,8 @@ This library supports:
 ```
 $ cd pico_fatfs/test
 $ mkdir build && cd build
-$ cmake ..
+$ cmake ..  # (for Raspberry Pi Pico 1 series)
+$ cmake -DPICO_PLATFORM=rp2350 ..  # (for Raspberry Pi Pico 2)
 $ make -j4
 ```
 * Download "pico_fatfs_test.uf2" on RPI-RP2 drive
