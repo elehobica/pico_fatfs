@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## [fatfs-R0.15-9.9.9] - 2025-03-03
 ### Added
 * Add support pico-sdk 2.1.1
 * Add support Raspberry Pi Pico 2 board

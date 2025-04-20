@@ -1,6 +1,8 @@
 # FatFs library for Raspberry Pi Pico / Pico 2
 ![Scene](doc/Pico_FatFs_Test_Scene.jpg)
 
+[![Build](https://github.com/elehobica/pico_fatfs/actions/workflows/build-binaries.yml/badge.svg)](https://github.com/elehobica/pico_fatfs/actions/workflows/build-binaries.yml)
+
 ## Overview
 FatFs library on Raspberry Pi Pico / Pico 2.
 This library supports:
