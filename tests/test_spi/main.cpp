@@ -165,11 +165,22 @@ int main()
         spi0,
         CLK_SLOW_DEFAULT,
         CLK_FAST_DEFAULT,
+        19,  // MISO
+        22,  // CS
+        5,  // sck
+        18,  // MOSI
+        true  // use internal pullup
+        /*
+
+        spi0,
+        CLK_SLOW_DEFAULT,
+        CLK_FAST_DEFAULT,
         PIN_SPI0_MISO_DEFAULT,
         PIN_SPI0_CS_DEFAULT,
         PIN_SPI0_SCK_DEFAULT,
         PIN_SPI0_MOSI_DEFAULT,
         true  // use internal pullup
+        */
     };
     pico_fatfs_set_config(&config);
 
