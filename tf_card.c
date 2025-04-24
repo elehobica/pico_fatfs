@@ -2,6 +2,7 @@
 
 #include "ff.h"
 #include "diskio.h"
+#include "pio_spi.h"
 
 #include "pico/stdlib.h"
 
@@ -60,6 +61,14 @@ DSTATUS Stat = STA_NOINIT;  /* Physical drive status */
 static
 BYTE CardType;          /* Card type flags */
 
+/* SPI PIO inst */
+static pio_spi_inst_t _pio_spi = {
+    .pio = pio0,
+    .sm = 0,
+    .cs_pin = 0
+};
+
+
 static inline uint32_t _millis(void)
 {
     return to_ms_since_boot(get_absolute_time());
@@ -83,12 +92,38 @@ static inline void cs_deselect(uint cs_pin) {
 
 static void FCLK_SLOW(void)
 {
-    spi_set_baudrate(_config.spi_inst, _config.clk_slow);
+    if (_config.spi_inst != NULL) {
+        spi_set_baudrate(_config.spi_inst, _config.clk_slow);
+    } else {
+        uint offset = pio_add_program(_pio_spi.pio, &spi_cpha0_program);
+        pio_spi_init(_pio_spi.pio, _pio_spi.sm, offset,
+            8,       // 8 bits per SPI frame
+            125e6 / _config.clk_slow,
+            false,   // CPHA = 0
+            false,   // CPOL = 0
+            _config.pin_sck,
+            _config.pin_mosi,
+            _config.pin_miso
+        );
+    }
 }
 
 static void FCLK_FAST(void)
 {
-    spi_set_baudrate(_config.spi_inst, _config.clk_fast);
+    if (_config.spi_inst != NULL) {
+        spi_set_baudrate(_config.spi_inst, _config.clk_fast);
+    } else {
+        uint offset = pio_add_program(_pio_spi.pio, &spi_cpha0_program);
+        pio_spi_init(_pio_spi.pio, _pio_spi.sm, offset,
+            8,       // 8 bits per SPI frame
+            125e6 / _config.clk_fast,
+            false,   // CPHA = 0
+            false,   // CPOL = 0
+            _config.pin_sck,
+            _config.pin_mosi,
+            _config.pin_miso
+        );
+    }
 }
 
 static void CS_HIGH(void)
@@ -99,6 +134,32 @@ static void CS_HIGH(void)
 static void CS_LOW(void)
 {
     cs_select(_config.pin_cs);
+}
+
+static void pico_fatfs_init_spi_pio(void)
+{
+    gpio_set_dir(_config.pin_sck, GPIO_OUT);
+    gpio_set_dir(_config.pin_miso, GPIO_IN);
+    gpio_set_dir(_config.pin_mosi, GPIO_OUT);
+    gpio_set_dir(_config.pin_cs, GPIO_OUT);
+
+    /* chip _select invalid*/
+    CS_HIGH();
+
+    _pio_spi.pio = pio0;
+    _pio_spi.sm = 0;
+    _pio_spi.cs_pin = _config.pin_cs;
+
+    uint offset = pio_add_program(_pio_spi.pio, &spi_cpha0_program);
+    pio_spi_init(_pio_spi.pio, _pio_spi.sm, offset,
+        8,       // 8 bits per SPI frame
+        125e6 / _config.clk_slow,
+        false,   // CPHA = 0
+        false,   // CPOL = 0
+        _config.pin_sck,
+        _config.pin_mosi,
+        _config.pin_miso
+    );
 }
 
 /* Initialize MMC interface */
@@ -116,7 +177,6 @@ void pico_fatfs_init_spi(void)
     }
     //gpio_set_drive_strength(_config.pin_sck, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
     //gpio_set_slew_rate(_config.pin_sck, 0); // 0: SLOW (default), 1: FAST
-    gpio_set_function(_config.pin_sck, GPIO_FUNC_SPI);
 
     gpio_init(_config.pin_miso);
     if (_config.pullup) {
@@ -125,7 +185,6 @@ void pico_fatfs_init_spi(void)
         gpio_disable_pulls(_config.pin_miso);
     }
     //gpio_set_schmitt(_config.pin_miso, 1); // 0: Off, 1: On (default)
-    gpio_set_function(_config.pin_miso, GPIO_FUNC_SPI);
 
     gpio_init(_config.pin_mosi);
     if (_config.pullup) {
@@ -135,7 +194,6 @@ void pico_fatfs_init_spi(void)
     }
     //gpio_set_drive_strength(_config.pin_mosi, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
     //gpio_set_slew_rate(_config.pin_mosi, 0); // 0: SLOW (default), 1: FAST
-    gpio_set_function(_config.pin_mosi, GPIO_FUNC_SPI);
 
     gpio_init(_config.pin_cs);
     if (false) {
@@ -145,6 +203,16 @@ void pico_fatfs_init_spi(void)
     }
     //gpio_set_drive_strength(_config.pin_cs, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
     //gpio_set_slew_rate(_config.pin_cs, 0); // 0: SLOW (default), 1: FAST
+
+    // Jump to PIO SPI if spi_inst is NULL
+    if (_config.spi_inst == NULL) {
+        pico_fatfs_init_spi_pio();
+        return;
+    }
+
+    gpio_set_function(_config.pin_sck, GPIO_FUNC_SPI);
+    gpio_set_function(_config.pin_miso, GPIO_FUNC_SPI);
+    gpio_set_function(_config.pin_mosi, GPIO_FUNC_SPI);
     gpio_set_dir(_config.pin_cs, GPIO_OUT);
 
     /* chip _select invalid*/
@@ -168,7 +236,11 @@ BYTE xchg_spi (
 )
 {
     uint8_t *buff = (uint8_t *) &dat;
-    spi_write_read_blocking(_config.spi_inst, buff, buff, 1);
+    if (_config.spi_inst != NULL) {
+        spi_write_read_blocking(_config.spi_inst, buff, buff, 1);
+    } else {
+        pio_spi_write8_read8_blocking(&_pio_spi, buff, buff, 1);
+    }
     return (BYTE) *buff;
 }
 
@@ -181,7 +253,13 @@ void rcvr_spi_multi (
 )
 {
     uint8_t *b = (uint8_t *) buff;
-    spi_read_blocking(_config.spi_inst, 0xff, b, btr);
+    if (_config.spi_inst != NULL) {
+        spi_read_blocking(_config.spi_inst, 0xff, b, btr);
+    } else {
+        uint8_t src[btr];
+        for (int i = 0; i < btr; i++) { src[i] = 0xff; }
+        pio_spi_write8_read8_blocking(&_pio_spi, src, b, btr);
+    }
 }
 
 
@@ -448,7 +526,11 @@ void xmit_spi_multi (
 )
 {
     const uint8_t *b = (const uint8_t *) buff;
-    spi_write_blocking(_config.spi_inst, b, btx);
+    if (_config.spi_inst != NULL) {
+        spi_write_blocking(_config.spi_inst, b, btx);
+    } else {
+        pio_spi_write8_blocking(&_pio_spi, b, btx);
+    }
 }
 
 /*-----------------------------------------------------------------------*/

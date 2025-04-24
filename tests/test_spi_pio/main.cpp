@@ -162,7 +162,7 @@ int main()
 
     // modify below if customized configuration is needed
     pico_fatfs_spi_config_t config = {
-        spi0,
+        spi0,  // PIO SPI selsected if explicitly NULL designated or implicitly spi0/spi1 with unmatched SPI pin assignment
         CLK_SLOW_DEFAULT,
         CLK_FAST_DEFAULT,
         19,  // MISO

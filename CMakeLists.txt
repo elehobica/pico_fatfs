@@ -1,6 +1,6 @@
 if (NOT TARGET pico_fatfs)
 
-    add_subdirectory(pio/spi spi_pio)
+    add_subdirectory(pio/spi pio_spi)
 
     add_library(pico_fatfs INTERFACE)
 
@@ -21,6 +21,6 @@ if (NOT TARGET pico_fatfs)
         pico_stdlib
         hardware_clocks
         hardware_spi
-        spi_pio
+        pio_spi
     )
 endif()

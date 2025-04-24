@@ -14,7 +14,7 @@ endif()
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 include($ENV{PICO_EXTRAS_PATH}/external/pico_extras_import.cmake)
 
-set(PROJECT_NAME "pico_fatfs_test" C CXX)
+set(PROJECT_NAME "pico_fatfs_test_spi_pio" C CXX)
 project(${PROJECT_NAME})
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
