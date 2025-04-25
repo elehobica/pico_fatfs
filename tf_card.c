@@ -61,6 +61,20 @@ DSTATUS Stat = STA_NOINIT;  /* Physical drive status */
 static
 BYTE CardType;          /* Card type flags */
 
+/* SPI pin configurations */
+static uint _pin_miso_conf[2][3] = {
+    { 0,  4, 16},
+    { 8, 12, 12}
+};
+static uint _pin_sck_conf[2][3] = {
+    { 2,  6, 18},
+    {10, 14, 14}
+};
+static uint _pin_mosi_conf[2][3] = {
+    { 3,  7, 19},
+    {11, 15, 15}
+};
+
 /* SPI PIO inst */
 static pio_spi_inst_t _pio_spi = {
     .pio = pio0,
@@ -682,9 +696,39 @@ DRESULT disk_ioctl (
     return res;
 }
 
-void pico_fatfs_set_config(pico_fatfs_spi_config_t *config)
+bool pico_fatfs_set_config(pico_fatfs_spi_config_t *config)
 {
     _config = *config;
+
+    if (_config.spi_inst == NULL) {
+        return false;
+    } else if (_config.spi_inst != spi0 && _config.spi_inst != spi1) {
+        _config.spi_inst = NULL;
+        return false;
+    }
+
+    // SPI function pin assignment check
+    bool miso_ok = false;
+    bool sck_ok = false;
+    bool mosi_ok = false;
+    int spi_id = (_config.spi_inst == spi0) ? 0 : 1;
+
+    for (int i = 0; i < 3; i++) {
+        if (_config.pin_miso == _pin_miso_conf[spi_id][i]) {
+            miso_ok = true;
+        }
+        if (_config.pin_sck == _pin_sck_conf[spi_id][i]) {
+            sck_ok = true;
+        }
+        if (_config.pin_mosi == _pin_mosi_conf[spi_id][i]) {
+            mosi_ok = true;
+        }
+    }
+    if (!miso_ok || !sck_ok || !mosi_ok) {
+        _config.spi_inst = NULL;
+        return false;
+    }
+    return true;
 }
 
 int pico_fatfs_reboot_spi(void)

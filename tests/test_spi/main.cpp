@@ -171,7 +171,13 @@ int main()
         PIN_SPI0_MOSI_DEFAULT,
         true  // use internal pullup
     };
-    pico_fatfs_set_config(&config);
+    bool flag = pico_fatfs_set_config(&config);
+    if (flag) {
+        printf("SPI configured\n");
+    } else {
+        printf("SPI PIO configured\n");
+    }
+
 
     for (int i = 0; i < 5; i++) {
         fr = f_mount(&fs, "", 1);
