@@ -157,7 +157,7 @@ static void pico_fatfs_init_spi_pio(void)
     uint offset = pio_add_program(_pio_spi.pio, &spi_cpha0_program);
     pio_spi_init(_pio_spi.pio, _pio_spi.sm, offset,
         8,       // 8 bits per SPI frame
-        (float) f_clk_sys / (_config.clk_slow / KHZ),
+        (float) f_clk_sys / (_config.clk_slow / KHZ) / 4,
         false,   // CPHA = 0
         false,   // CPOL = 0
         _config.pin_sck,

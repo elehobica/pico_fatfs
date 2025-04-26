@@ -69,6 +69,7 @@ Configure function, clock and pin assignment by `pico_fatfs_set_config()` with `
 * By default, `clk_slow` is set to `100 * KHZ` and `clk_fast` is set to `50 * MHZ`.
 * For SPI function, the actual SPI clock frequency is set to clk_peri / N = 125.0 MHz / N, which is determined by spi_set_baudrate() in ['pico-sdk/src/rp2_common/hardware_spi/spi.c'](https://github.com/raspberrypi/pico-sdk/blob/2062372d203b372849d573f252cf7c6dc2800c0a/src/rp2_common/hardware_spi/spi.c#L41). Thus, to choose actually slower clock as `clk_fast`, smaller value than 31.25 MHz should be configured.
 * For SPI PIO funciton, close clock frequency value will be configured thanks to fractional clock divider of PIO.
+* As experimentally confirmed, SPI function tends to achieve higher frequency than SPI PIO function.
 
 ### Pin assignment
 * Pin assignment needs to satisfy the below rule for SPI function configuration, othewise SPI PIO function will be configured implicitly even though `spi0` or `spi1` is designated.
@@ -137,7 +138,8 @@ $ make -j4
 ```
 * Download "pico_fatfs_test.uf2" on RPI-RP2 drive
 
-## Benchmark Result (CLK_FAST = 50 MHz)
+## Benchmark Result
+### SPI function (CLK_FAST = 50 MHz)
 * Memorex microSD 2GB
 ```
 =====================
@@ -332,6 +334,65 @@ speed,max,min,avg
 KB/Sec,usec,usec,usec
 1288.9095, 412, 368, 396
 1289.2418, 412, 381, 396
+```
+
+### SPI function vs SPI PIO function
+* Samsung	PRO Plus 256GB (SPI function) (CLK_FAST = 32 MHz)
+```
+=====================
+== pico_fatfs_test ==
+=====================
+SPI configured
+mount ok
+Type is EXFAT
+Card size:  256.29 GB (GB = 1E9 bytes)
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512 bytes
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+956.6935, 9152, 499, 534
+951.0519, 7855, 501, 537
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+1695.9565, 365, 271, 301
+1695.9565, 365, 271, 301
+```
+
+* Samsung	PRO Plus 256GB (SPI PIO function) (CLK_FAST = 20 MHz)
+```
+=====================
+== pico_fatfs_test ==
+=====================
+SPI PIO configured
+mount ok
+Type is EXFAT
+Card size:  256.29 GB (GB = 1E9 bytes)
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512 bytes
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+951.9573, 8979, 499, 536
+946.7298, 9139, 501, 539
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+1517.3535, 396, 306, 336
+1517.3535, 350, 306, 336
 ```
 
 ## Application Example
