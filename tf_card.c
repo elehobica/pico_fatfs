@@ -699,13 +699,17 @@ bool pico_fatfs_set_config(pico_fatfs_spi_config_t* config)
     bool mosi_ok = false;
     int spi_id = (_config.spi_inst == spi0) ? 0 : 1;
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < sizeof(_pin_miso_conf[spi_id])/sizeof(_pin_miso_conf[spi_id][0]); i++) {
         if (_config.pin_miso == _pin_miso_conf[spi_id][i]) {
             miso_ok = true;
         }
+    }
+    for (int i = 0; i < sizeof(_pin_sck_conf[spi_id])/sizeof(_pin_sck_conf[spi_id][0]); i++) {
         if (_config.pin_sck == _pin_sck_conf[spi_id][i]) {
             sck_ok = true;
         }
+    }
+    for (int i = 0; i < sizeof(_pin_mosi_conf[spi_id])/sizeof(_pin_mosi_conf[spi_id][0]); i++) {
         if (_config.pin_mosi == _pin_mosi_conf[spi_id][i]) {
             mosi_ok = true;
         }

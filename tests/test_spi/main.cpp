@@ -153,7 +153,7 @@ int main()
 
     // modify below if customized configuration is needed
     pico_fatfs_spi_config_t config = {
-        spi0,  // PIO SPI selsected if explicitly NULL designated or implicitly spi0/spi1 with unmatched SPI pin assignment
+        spi0,  // if unmatched SPI pin assignments with spi0/spi1 or explicitly designated as NULL, SPI PIO will be configured 
         CLK_SLOW_DEFAULT,
         CLK_FAST_DEFAULT,
         PIN_SPI0_MISO_DEFAULT,  // SPIx_RX
@@ -162,8 +162,8 @@ int main()
         PIN_SPI0_MOSI_DEFAULT,  // SPIx_TX
         true   // use internal pullup
     };
-    bool flag = pico_fatfs_set_config(&config);
-    if (flag) {
+    bool spi_configured = pico_fatfs_set_config(&config);
+    if (spi_configured) {
         printf("SPI configured\n");
     } else {
         // modify if customized configuration for SPI PIO is needed
