@@ -63,24 +63,26 @@ BYTE CardType;          /* Card type flags */
 
 /* SPI pin configurations */
 static uint _pin_miso_conf[2][3] = {
-    { 0,  4, 16},
-    { 8, 12, 12}
+    { 0,  4, 16},  // SPI0
+    { 8, 12, 12}   // SPI1
 };
 static uint _pin_sck_conf[2][3] = {
-    { 2,  6, 18},
-    {10, 14, 14}
+    { 2,  6, 18},  // SPI0
+    {10, 14, 14}   // SPI1
 };
 static uint _pin_mosi_conf[2][3] = {
-    { 3,  7, 19},
-    {11, 15, 15}
+    { 3,  7, 19},  // SPI0
+    {11, 15, 15}   // SPI1
 };
 
 /* SPI PIO inst (default) */
 static pio_spi_inst_t _pio_spi = {
-    .pio = pio0,
-    .sm = 0,
+    .pio    = pio0,
+    .sm     = 0,
     .cs_pin = 0
 };
+static PIO _pio = SPI_PIO_DEFAULT_PIO;
+static uint _sm = SPI_PIO_DEFAULT_SM;
 static io_rw_32* _reg_clkdiv = NULL;
 static io_rw_32  _pio_clkdiv_slow = 255 << 16;
 static io_rw_32  _pio_clkdiv_fast = 255 << 16;
@@ -135,18 +137,19 @@ static void CS_LOW(void)
     cs_select(_config.pin_cs);
 }
 
+/* Initialize for SPI PIO */
 static void pico_fatfs_init_spi_pio(void)
 {
-    gpio_set_dir(_config.pin_sck, GPIO_OUT);
+    gpio_set_dir(_config.pin_sck,  GPIO_OUT);
     gpio_set_dir(_config.pin_miso, GPIO_IN);
     gpio_set_dir(_config.pin_mosi, GPIO_OUT);
-    gpio_set_dir(_config.pin_cs, GPIO_OUT);
+    gpio_set_dir(_config.pin_cs,   GPIO_OUT);
 
     /* chip _select invalid*/
     CS_HIGH();
 
-    _pio_spi.pio    = pio0;
-    _pio_spi.sm     = 0;
+    _pio_spi.pio    = _pio;
+    _pio_spi.sm     = _sm;
     _pio_spi.cs_pin = _config.pin_cs;
 
     uint f_clk_sys = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_SYS);
@@ -161,24 +164,21 @@ static void pico_fatfs_init_spi_pio(void)
         _config.pin_mosi,
         _config.pin_miso
     );
+    // Get CLKDIV register and slow/fast settings
     _reg_clkdiv      = &(_pio_spi.pio->sm[_pio_spi.sm].clkdiv);
     _pio_clkdiv_slow = *_reg_clkdiv;
     _pio_clkdiv_fast = (io_rw_32) ((float) _pio_clkdiv_slow * _config.clk_slow / _config.clk_fast);
 }
 
-/* Initialize MMC interface */
-__attribute__((weak))
+/* Initialize SPI */
 void pico_fatfs_init_spi(void)
 {
     /* GPIO pin configuration */
-    /* pull up of MISO is MUST (10Kohm external pull up is recommended) */
+    /* pull up of MISO is MUST (internal pull up or 10Kohm external pull up is recommended) */
     /* Set drive strength and slew rate if needed to meet wire condition */
+
     gpio_init(_config.pin_sck);
-    if (false) {
-        gpio_pull_up(_config.pin_sck);
-    } else {
-        gpio_disable_pulls(_config.pin_sck);
-    }
+    gpio_disable_pulls(_config.pin_sck);
     //gpio_set_drive_strength(_config.pin_sck, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
     //gpio_set_slew_rate(_config.pin_sck, 0); // 0: SLOW (default), 1: FAST
 
@@ -200,11 +200,7 @@ void pico_fatfs_init_spi(void)
     //gpio_set_slew_rate(_config.pin_mosi, 0); // 0: SLOW (default), 1: FAST
 
     gpio_init(_config.pin_cs);
-    if (false) {
-        gpio_pull_up(_config.pin_cs);
-    } else {
-        gpio_disable_pulls(_config.pin_cs);
-    }
+    gpio_disable_pulls(_config.pin_cs);
     //gpio_set_drive_strength(_config.pin_cs, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
     //gpio_set_slew_rate(_config.pin_cs, 0); // 0: SLOW (default), 1: FAST
 
@@ -214,7 +210,7 @@ void pico_fatfs_init_spi(void)
         return;
     }
 
-    gpio_set_function(_config.pin_sck, GPIO_FUNC_SPI);
+    gpio_set_function(_config.pin_sck,  GPIO_FUNC_SPI);
     gpio_set_function(_config.pin_miso, GPIO_FUNC_SPI);
     gpio_set_function(_config.pin_mosi, GPIO_FUNC_SPI);
     gpio_set_dir(_config.pin_cs, GPIO_OUT);
@@ -719,6 +715,12 @@ bool pico_fatfs_set_config(pico_fatfs_spi_config_t* config)
         return false;
     }
     return true;
+}
+
+void pico_fatfs_config_spi_pio(PIO pio, uint sm)
+{
+    _pio = pio;
+    _sm = sm;
 }
 
 int pico_fatfs_reboot_spi(void)

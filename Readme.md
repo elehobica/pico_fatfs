@@ -111,25 +111,6 @@ Configure clock and pin settings by `pico_fatfs_set_config()` with `pico_fatfs_s
 * set `true` for MISO, MOSI to use internal pullup. (recommended)
 * set `false` for MISO, MOSI when external pullup resistors attached. [external pullup](doc/Pico_FatFs_Test_Schematic_w_pullup.png)
 
-### Other customization for pin configuration
-By default, `void pico_fatfs_init_spi()` in [tf_card.c](tf_card.c) runs for IO buffer initialization. User can override it by the re-definition to get more detail IO buffer configuration. However, the customizations such as slew rate and/or drive strength rarely improve the timing problem of SPI interface, therefore, physical approach such as shorter wiring would be recommended.
-
-in C++ code (e.g. main.cpp)
-```
-extern "C" {
-void pico_fatfs_init_spi(void)
-{
-  ...
-}
-}
-```
-or in C code (e.g. main.c)
-```
-void pico_fatfs_init_spi(void)
-{
-  ...
-}
-```
 
 ### Function customization
 User can also override following functions as they are defined with _weak_ attribute.

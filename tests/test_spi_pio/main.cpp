@@ -98,15 +98,6 @@ static void _error_blink(int count)
     }
 }
 
-// uncomment below with edit if non-default GPIO attributes are needed
-/*
-extern "C" {
-void pico_fatfs_init_spi(void)
-{
-}
-}
-*/
-
 int main()
 {
     FATFS fs;
@@ -161,20 +152,23 @@ int main()
     printf("=====================\n");
 
     // modify below if customized configuration is needed
+    //   Pin assignments for Pimoroni Pico DV demo base board
     pico_fatfs_spi_config_t config = {
         spi0,  // PIO SPI selsected if explicitly NULL designated or implicitly spi0/spi1 with unmatched SPI pin assignment
         CLK_SLOW_DEFAULT,
         CLK_FAST_DEFAULT,
-        19,  // MISO
-        22,  // CS
-        5,  // sck
-        18,  // MOSI
-        true  // use internal pullup
+        19,    // MISO (SPIx_RX)
+        22,    // CS
+         5,    // SCK  (SPIx_SCK)
+        18,    // MOSI (SPIx_TX)
+        true   // use internal pullup
     };
     bool flag = pico_fatfs_set_config(&config);
     if (flag) {
         printf("SPI configured\n");
     } else {
+        // modify if customized configuration for SPI PIO is needed
+        pico_fatfs_config_spi_pio(SPI_PIO_DEFAULT_PIO, SPI_PIO_DEFAULT_SM);
         printf("SPI PIO configured\n");
     }
 

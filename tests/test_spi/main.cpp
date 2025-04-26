@@ -98,15 +98,6 @@ static void _error_blink(int count)
     }
 }
 
-// uncomment below with edit if non-default GPIO attributes are needed
-/*
-extern "C" {
-void pico_fatfs_init_spi(void)
-{
-}
-}
-*/
-
 int main()
 {
     FATFS fs;
@@ -162,19 +153,21 @@ int main()
 
     // modify below if customized configuration is needed
     pico_fatfs_spi_config_t config = {
-        spi0,
+        spi0,  // PIO SPI selsected if explicitly NULL designated or implicitly spi0/spi1 with unmatched SPI pin assignment
         CLK_SLOW_DEFAULT,
         CLK_FAST_DEFAULT,
-        PIN_SPI0_MISO_DEFAULT,
+        PIN_SPI0_MISO_DEFAULT,  // SPIx_RX
         PIN_SPI0_CS_DEFAULT,
-        PIN_SPI0_SCK_DEFAULT,
-        PIN_SPI0_MOSI_DEFAULT,
-        true  // use internal pullup
+        PIN_SPI0_SCK_DEFAULT,   // SPIx_SCK
+        PIN_SPI0_MOSI_DEFAULT,  // SPIx_TX
+        true   // use internal pullup
     };
     bool flag = pico_fatfs_set_config(&config);
     if (flag) {
         printf("SPI configured\n");
     } else {
+        // modify if customized configuration for SPI PIO is needed
+        pico_fatfs_config_spi_pio(SPI_PIO_DEFAULT_PIO, SPI_PIO_DEFAULT_SM);
         printf("SPI PIO configured\n");
     }
 
