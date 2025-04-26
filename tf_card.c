@@ -82,11 +82,11 @@ static uint _pin_miso_conf[2][4] = {
 };
 static uint _pin_sck_conf[2][4] = {
     { 2,  6, 18, 22},  // SPI0_SCK
-    {10, 14, 26, -1}   // SPI1_SCK
+    {10, 14, 26, 26}   // SPI1_SCK
 };
 static uint _pin_mosi_conf[2][4] = {
     { 3,  7, 19, 23},  // SPI0_TX
-    {11, 15, 27, -1}   // SPI1_TX
+    {11, 15, 27, 27}   // SPI1_TX
 };
 #endif
 
@@ -710,23 +710,26 @@ bool pico_fatfs_set_config(pico_fatfs_spi_config_t* config)
 
     // SPI function pin assignment check
     bool miso_ok = false;
-    bool sck_ok = false;
+    bool sck_ok  = false;
     bool mosi_ok = false;
     int spi_id = (_config.spi_inst == spi0) ? 0 : 1;
 
     for (int i = 0; i < sizeof(_pin_miso_conf[spi_id])/sizeof(_pin_miso_conf[spi_id][0]); i++) {
         if (_config.pin_miso == _pin_miso_conf[spi_id][i]) {
             miso_ok = true;
+            break;
         }
     }
     for (int i = 0; i < sizeof(_pin_sck_conf[spi_id])/sizeof(_pin_sck_conf[spi_id][0]); i++) {
         if (_config.pin_sck == _pin_sck_conf[spi_id][i]) {
             sck_ok = true;
+            break;
         }
     }
     for (int i = 0; i < sizeof(_pin_mosi_conf[spi_id])/sizeof(_pin_mosi_conf[spi_id][0]); i++) {
         if (_config.pin_mosi == _pin_mosi_conf[spi_id][i]) {
             mosi_ok = true;
+            break;
         }
     }
     if (!miso_ok || !sck_ok || !mosi_ok) {

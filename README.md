@@ -122,24 +122,24 @@ User can also override following functions as they are defined with _weak_ attri
 * Confirmed with cmake-3.27.2-windows-x86_64 and gcc-arm-none-eabi-10.3-2021.10-win32
 * Lanuch "Developer Command Prompt for VS 2022"
 ```
-> cd pico_fatfs/test
+> cd pico_fatfs\tests\xxxx
 > mkdir build && cd build
 > cmake -G "NMake Makefiles" ..  ; (for Raspberry Pi Pico 1 series)
 > cmake -G "NMake Makefiles" -DPICO_PLATFORM=rp2350 ..  ; (for Raspberry Pi Pico 2)
 > nmake
 ```
-* Put "pico_fatfs_test.uf2" on RPI-RP2 drive
+* Put "*.uf2" on RPI-RP2 or RP2350 drive
 ### Linux
 * Build is confirmed with [pico-sdk-dev-docker:sdk-2.1.1-1.0.0]( https://hub.docker.com/r/elehobica/pico-sdk-dev-docker)
 * Confirmed with cmake-3.22.1 and arm-none-eabi-gcc (15:10.3-2021.07-4) 10.3.1
 ```
-$ cd pico_fatfs/test
+$ cd pico_fatfs/tests/xxxx
 $ mkdir build && cd build
 $ cmake ..  # (for Raspberry Pi Pico 1 series)
 $ cmake -DPICO_PLATFORM=rp2350 ..  # (for Raspberry Pi Pico 2)
 $ make -j4
 ```
-* Download "pico_fatfs_test.uf2" on RPI-RP2 drive
+* Download "*.uf2" on RPI-RP2 or RP2350 drive
 
 ## Benchmark Result
 ### SPI function (CLK_FAST = 32 MHz)
