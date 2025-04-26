@@ -62,18 +62,33 @@ static
 BYTE CardType;          /* Card type flags */
 
 /* SPI pin configurations */
-static uint _pin_miso_conf[2][3] = {
-    { 0,  4, 16},  // SPI0
-    { 8, 12, 12}   // SPI1
+#if defined(PICO_RP2350A)
+static uint _pin_miso_conf[2][6] = {
+    { 0,  4, 16, 20, 32, 36},  // SPI0_RX
+    { 8, 12, 24, 28, 40, 44}   // SPI1_RX
 };
-static uint _pin_sck_conf[2][3] = {
-    { 2,  6, 18},  // SPI0
-    {10, 14, 14}   // SPI1
+static uint _pin_sck_conf[2][6] = {
+    { 2,  6, 18, 22, 34, 38},  // SPI0_SCK
+    {10, 14, 26, 30, 42, 46}   // SPI1_SCK
 };
-static uint _pin_mosi_conf[2][3] = {
-    { 3,  7, 19},  // SPI0
-    {11, 15, 15}   // SPI1
+static uint _pin_mosi_conf[2][6] = {
+    { 3,  7, 19, 23, 35, 39},  // SPI0_TX
+    {11, 15, 27, 31, 43, 47}   // SPI1_TX
 };
+#else
+static uint _pin_miso_conf[2][4] = {
+    { 0,  4, 16, 20},  // SPI0_RX
+    { 8, 12, 24, 28}   // SPI1_RX
+};
+static uint _pin_sck_conf[2][4] = {
+    { 2,  6, 18, 22},  // SPI0_SCK
+    {10, 14, 26, -1}   // SPI1_SCK
+};
+static uint _pin_mosi_conf[2][4] = {
+    { 3,  7, 19, 23},  // SPI0_TX
+    {11, 15, 27, -1}   // SPI1_TX
+};
+#endif
 
 /* SPI PIO inst (default) */
 static pio_spi_inst_t _pio_spi = {

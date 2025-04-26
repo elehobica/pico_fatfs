@@ -72,13 +72,15 @@ Configure function, clock and pin assignment by `pico_fatfs_set_config()` with `
 * As experimentally confirmed, SPI function tends to achieve higher frequency than SPI PIO function.
 
 ### Pin assignment
-* Pin assignment needs to satisfy the below rule for SPI function configuration, othewise SPI PIO function will be configured implicitly even though `spi0` or `spi1` is designated.
+* Pin assignment needs to satisfy the below rule for SPI function configuration, otherwise SPI PIO function will be configured implicitly even though `spi0` or `spi1` is designated.
 
 | SPI role | Pico pin category | GPx for SPI0 | GPx for SPI1 |
 ----|----|----|----
-|  MISO | SPIx_RX | 0, 4, 16 | 8, 12 |
-|  SCK | SPIx_SCK | 2, 6, 18 | 10, 14 |
-|  MOSI | SPIx_TX | 3, 7, 19 | 11, 15 |
+|  MISO | SPIx_RX | 0, 4, 16, 20, (32, 36) | 8, 12, 24, 28, (40, 44)|
+|  SCK | SPIx_SCK | 2, 6, 18, 22, (34, 38) | 10, 14, 26, (30, 42, 46) |
+|  MOSI | SPIx_TX | 3, 7, 19, 23, (35, 39) | 11, 15, 27, (31, 43, 47) |
+
+(): rp2350 only
 
 ### Pullup
 * Set `true` to use internal pullup for MISO and MOSI (recommended), otherwise, set `false` when external pullup resistors attached for MISO and MOSI as shown in [external pullup](doc/Pico_FatFs_Test_Schematic_w_pullup.png)
