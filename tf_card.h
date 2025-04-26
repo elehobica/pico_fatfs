@@ -20,7 +20,7 @@
 #define PIN_SPI1_MOSI_DEFAULT   11  // 11, 15
 
 typedef struct _pico_fatfs_spi_config_t {
-    spi_inst_t  *spi_inst;  // spi0 or spi1
+    spi_inst_t* spi_inst;  // spi0 or spi1
     uint        clk_slow;
     uint        clk_fast;
     uint        pin_miso;
@@ -41,7 +41,7 @@ extern "C" {
 *
 * @return true if configured for SPI, false if configured for PIO SPI
 */
-bool pico_fatfs_set_config(pico_fatfs_spi_config_t *config);
+bool pico_fatfs_set_config(pico_fatfs_spi_config_t* config);
 int pico_fatfs_reboot_spi(void);
 
 #ifdef __cplusplus
