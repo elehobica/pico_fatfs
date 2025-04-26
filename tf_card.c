@@ -2,6 +2,7 @@
 
 #include "ff.h"
 #include "diskio.h"
+#include "pio_spi.h"
 
 #include "pico/stdlib.h"
 
@@ -60,6 +61,33 @@ DSTATUS Stat = STA_NOINIT;  /* Physical drive status */
 static
 BYTE CardType;          /* Card type flags */
 
+/* SPI pin configurations */
+static uint _pin_miso_conf[2][3] = {
+    { 0,  4, 16},  // SPI0
+    { 8, 12, 12}   // SPI1
+};
+static uint _pin_sck_conf[2][3] = {
+    { 2,  6, 18},  // SPI0
+    {10, 14, 14}   // SPI1
+};
+static uint _pin_mosi_conf[2][3] = {
+    { 3,  7, 19},  // SPI0
+    {11, 15, 15}   // SPI1
+};
+
+/* SPI PIO inst (default) */
+static pio_spi_inst_t _pio_spi = {
+    .pio    = pio0,
+    .sm     = 0,
+    .cs_pin = 0
+};
+static PIO _pio = SPI_PIO_DEFAULT_PIO;
+static uint _sm = SPI_PIO_DEFAULT_SM;
+static io_rw_32* _reg_clkdiv = NULL;
+static io_rw_32  _pio_clkdiv_slow = 255 << 16;
+static io_rw_32  _pio_clkdiv_fast = 255 << 16;
+
+
 static inline uint32_t _millis(void)
 {
     return to_ms_since_boot(get_absolute_time());
@@ -83,12 +111,20 @@ static inline void cs_deselect(uint cs_pin) {
 
 static void FCLK_SLOW(void)
 {
-    spi_set_baudrate(_config.spi_inst, _config.clk_slow);
+    if (_config.spi_inst != NULL) {
+        spi_set_baudrate(_config.spi_inst, _config.clk_slow);
+    } else if (_reg_clkdiv != NULL) {
+        *_reg_clkdiv = _pio_clkdiv_slow;
+    }
 }
 
 static void FCLK_FAST(void)
 {
-    spi_set_baudrate(_config.spi_inst, _config.clk_fast);
+    if (_config.spi_inst != NULL) {
+        spi_set_baudrate(_config.spi_inst, _config.clk_fast);
+    } else if (_reg_clkdiv != NULL) {
+        *_reg_clkdiv = _pio_clkdiv_fast;
+    }
 }
 
 static void CS_HIGH(void)
@@ -101,22 +137,50 @@ static void CS_LOW(void)
     cs_select(_config.pin_cs);
 }
 
-/* Initialize MMC interface */
-__attribute__((weak))
+/* Initialize for SPI PIO */
+static void pico_fatfs_init_spi_pio(void)
+{
+    gpio_set_dir(_config.pin_sck,  GPIO_OUT);
+    gpio_set_dir(_config.pin_miso, GPIO_IN);
+    gpio_set_dir(_config.pin_mosi, GPIO_OUT);
+    gpio_set_dir(_config.pin_cs,   GPIO_OUT);
+
+    /* chip _select invalid*/
+    CS_HIGH();
+
+    _pio_spi.pio    = _pio;
+    _pio_spi.sm     = _sm;
+    _pio_spi.cs_pin = _config.pin_cs;
+
+    uint f_clk_sys = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_SYS);
+
+    uint offset = pio_add_program(_pio_spi.pio, &spi_cpha0_program);
+    pio_spi_init(_pio_spi.pio, _pio_spi.sm, offset,
+        8,       // 8 bits per SPI frame
+        (float) f_clk_sys / (_config.clk_slow / KHZ) / 4,
+        false,   // CPHA = 0
+        false,   // CPOL = 0
+        _config.pin_sck,
+        _config.pin_mosi,
+        _config.pin_miso
+    );
+    // Get CLKDIV register and slow/fast settings
+    _reg_clkdiv      = &(_pio_spi.pio->sm[_pio_spi.sm].clkdiv);
+    _pio_clkdiv_slow = *_reg_clkdiv;
+    _pio_clkdiv_fast = (io_rw_32) ((float) _pio_clkdiv_slow * _config.clk_slow / _config.clk_fast);
+}
+
+/* Initialize SPI */
 void pico_fatfs_init_spi(void)
 {
     /* GPIO pin configuration */
-    /* pull up of MISO is MUST (10Kohm external pull up is recommended) */
+    /* pull up of MISO is MUST (internal pull up or 10Kohm external pull up is recommended) */
     /* Set drive strength and slew rate if needed to meet wire condition */
+
     gpio_init(_config.pin_sck);
-    if (false) {
-        gpio_pull_up(_config.pin_sck);
-    } else {
-        gpio_disable_pulls(_config.pin_sck);
-    }
+    gpio_disable_pulls(_config.pin_sck);
     //gpio_set_drive_strength(_config.pin_sck, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
     //gpio_set_slew_rate(_config.pin_sck, 0); // 0: SLOW (default), 1: FAST
-    gpio_set_function(_config.pin_sck, GPIO_FUNC_SPI);
 
     gpio_init(_config.pin_miso);
     if (_config.pullup) {
@@ -125,7 +189,6 @@ void pico_fatfs_init_spi(void)
         gpio_disable_pulls(_config.pin_miso);
     }
     //gpio_set_schmitt(_config.pin_miso, 1); // 0: Off, 1: On (default)
-    gpio_set_function(_config.pin_miso, GPIO_FUNC_SPI);
 
     gpio_init(_config.pin_mosi);
     if (_config.pullup) {
@@ -135,16 +198,21 @@ void pico_fatfs_init_spi(void)
     }
     //gpio_set_drive_strength(_config.pin_mosi, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
     //gpio_set_slew_rate(_config.pin_mosi, 0); // 0: SLOW (default), 1: FAST
-    gpio_set_function(_config.pin_mosi, GPIO_FUNC_SPI);
 
     gpio_init(_config.pin_cs);
-    if (false) {
-        gpio_pull_up(_config.pin_cs);
-    } else {
-        gpio_disable_pulls(_config.pin_cs);
-    }
+    gpio_disable_pulls(_config.pin_cs);
     //gpio_set_drive_strength(_config.pin_cs, PADS_BANK0_GPIO0_DRIVE_VALUE_4MA); // 2mA, 4mA (default), 8mA, 12mA
     //gpio_set_slew_rate(_config.pin_cs, 0); // 0: SLOW (default), 1: FAST
+
+    // Jump to PIO SPI if spi_inst is NULL
+    if (_config.spi_inst == NULL) {
+        pico_fatfs_init_spi_pio();
+        return;
+    }
+
+    gpio_set_function(_config.pin_sck,  GPIO_FUNC_SPI);
+    gpio_set_function(_config.pin_miso, GPIO_FUNC_SPI);
+    gpio_set_function(_config.pin_mosi, GPIO_FUNC_SPI);
     gpio_set_dir(_config.pin_cs, GPIO_OUT);
 
     /* chip _select invalid*/
@@ -167,8 +235,12 @@ BYTE xchg_spi (
     BYTE dat    /* Data to send */
 )
 {
-    uint8_t *buff = (uint8_t *) &dat;
-    spi_write_read_blocking(_config.spi_inst, buff, buff, 1);
+    uint8_t* buff = (uint8_t *) &dat;
+    if (_config.spi_inst != NULL) {
+        spi_write_read_blocking(_config.spi_inst, buff, buff, 1);
+    } else {
+        pio_spi_write8_read8_blocking(&_pio_spi, buff, buff, 1);
+    }
     return (BYTE) *buff;
 }
 
@@ -176,12 +248,18 @@ BYTE xchg_spi (
 /* Receive multiple byte */
 static
 void rcvr_spi_multi (
-    BYTE *buff,     /* Pointer to data buffer */
+    BYTE* buff,     /* Pointer to data buffer */
     UINT btr        /* Number of bytes to receive (even number) */
 )
 {
-    uint8_t *b = (uint8_t *) buff;
-    spi_read_blocking(_config.spi_inst, 0xff, b, btr);
+    uint8_t* b = (uint8_t *) buff;
+    if (_config.spi_inst != NULL) {
+        spi_read_blocking(_config.spi_inst, 0xff, b, btr);
+    } else {
+        uint8_t src[btr];
+        for (int i = 0; i < btr; i++) { src[i] = 0xff; }
+        pio_spi_write8_read8_blocking(&_pio_spi, src, b, btr);
+    }
 }
 
 
@@ -243,7 +321,7 @@ int _select (void)  /* 1:OK, 0:Timeout */
 
 static
 int rcvr_datablock (    /* 1:OK, 0:Error */
-    BYTE *buff,         /* Data buffer */
+    BYTE* buff,         /* Data buffer */
     UINT btr            /* Data block length (byte) */
 )
 {
@@ -398,7 +476,7 @@ DSTATUS disk_status (
 
 DRESULT disk_read (
     BYTE drv,       /* Physical drive number (0) */
-    BYTE *buff,     /* Pointer to the data buffer to store read data */
+    BYTE* buff,     /* Pointer to the data buffer to store read data */
     LBA_t sector,   /* Start sector number (LBA) */
     UINT count      /* Number of sectors to read (1..128) */
 )
@@ -443,12 +521,16 @@ DWORD get_fattime (void)
 /* Transmit multiple byte */
 static
 void xmit_spi_multi (
-    const BYTE *buff,       /* Pointer to data buffer */
+    const BYTE* buff,       /* Pointer to data buffer */
     UINT btx        /* Number of bytes to transmit (even number) */
 )
 {
-    const uint8_t *b = (const uint8_t *) buff;
-    spi_write_blocking(_config.spi_inst, b, btx);
+    const uint8_t* b = (const uint8_t *) buff;
+    if (_config.spi_inst != NULL) {
+        spi_write_blocking(_config.spi_inst, b, btx);
+    } else {
+        pio_spi_write8_blocking(&_pio_spi, b, btx);
+    }
 }
 
 /*-----------------------------------------------------------------------*/
@@ -457,7 +539,7 @@ void xmit_spi_multi (
 
 static
 int xmit_datablock (    /* 1:OK, 0:Error */
-    const BYTE *buff, /* 512 byte data block to be transmitted */
+    const BYTE* buff, /* 512 byte data block to be transmitted */
     BYTE token /* Data/Stop token */
 )
 {
@@ -481,7 +563,7 @@ int xmit_datablock (    /* 1:OK, 0:Error */
 
 DRESULT disk_write (
     BYTE drv,           /* Physical drive number (0) */
-    const BYTE *buff,   /* Ponter to the data to write */
+    const BYTE* buff,   /* Ponter to the data to write */
     LBA_t sector,       /* Start sector number (LBA) */
     UINT count          /* Number of sectors to write (1..128) */
 )
@@ -524,12 +606,12 @@ DRESULT disk_write (
 DRESULT disk_ioctl (
     BYTE drv,       /* Physical drive number (0) */
     BYTE cmd,       /* Control command code */
-    void *buff      /* Pointer to the conrtol data */
+    void* buff      /* Pointer to the conrtol data */
 )
 {
     DRESULT res;
     BYTE n, csd[16];
-    DWORD *dp, st, ed, csize;
+    DWORD* dp, st, ed, csize;
 
 
     if (drv) return RES_PARERR;                 /* Check parameter */
@@ -600,9 +682,49 @@ DRESULT disk_ioctl (
     return res;
 }
 
-void pico_fatfs_set_config(pico_fatfs_spi_config_t *config)
+bool pico_fatfs_set_config(pico_fatfs_spi_config_t* config)
 {
     _config = *config;
+
+    if (_config.spi_inst == NULL) {
+        return false;
+    } else if (_config.spi_inst != spi0 && _config.spi_inst != spi1) {
+        _config.spi_inst = NULL;
+        return false;
+    }
+
+    // SPI function pin assignment check
+    bool miso_ok = false;
+    bool sck_ok = false;
+    bool mosi_ok = false;
+    int spi_id = (_config.spi_inst == spi0) ? 0 : 1;
+
+    for (int i = 0; i < sizeof(_pin_miso_conf[spi_id])/sizeof(_pin_miso_conf[spi_id][0]); i++) {
+        if (_config.pin_miso == _pin_miso_conf[spi_id][i]) {
+            miso_ok = true;
+        }
+    }
+    for (int i = 0; i < sizeof(_pin_sck_conf[spi_id])/sizeof(_pin_sck_conf[spi_id][0]); i++) {
+        if (_config.pin_sck == _pin_sck_conf[spi_id][i]) {
+            sck_ok = true;
+        }
+    }
+    for (int i = 0; i < sizeof(_pin_mosi_conf[spi_id])/sizeof(_pin_mosi_conf[spi_id][0]); i++) {
+        if (_config.pin_mosi == _pin_mosi_conf[spi_id][i]) {
+            mosi_ok = true;
+        }
+    }
+    if (!miso_ok || !sck_ok || !mosi_ok) {
+        _config.spi_inst = NULL;
+        return false;
+    }
+    return true;
+}
+
+void pico_fatfs_config_spi_pio(PIO pio, uint sm)
+{
+    _pio = pio;
+    _sm = sm;
 }
 
 int pico_fatfs_reboot_spi(void)

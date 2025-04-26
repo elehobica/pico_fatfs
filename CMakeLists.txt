@@ -1,4 +1,7 @@
 if (NOT TARGET pico_fatfs)
+
+    add_subdirectory(pio/spi pio_spi)
+
     add_library(pico_fatfs INTERFACE)
 
     target_sources(pico_fatfs INTERFACE
@@ -18,5 +21,6 @@ if (NOT TARGET pico_fatfs)
         pico_stdlib
         hardware_clocks
         hardware_spi
+        pio_spi
     )
 endif()

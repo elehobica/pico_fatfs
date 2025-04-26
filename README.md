@@ -8,9 +8,10 @@ FatFs library on Raspberry Pi Pico / Pico 2.
 This library supports:
 * FatFs R0.15 ([http://elm-chan.org/fsw/ff/00index_e.html](http://elm-chan.org/fsw/ff/00index_e.html))
 * SD card access by SPI interface
+* SPI function applied for compliant pin assignment, otherwise SPI PIO applied for more flexible pin assignment
 * SD, SDHC, SDXC cards
 * FAT16, FAT32, exFAT formats
-* test code for write / read speed benchmark
+* test projects for write / read speed benchmark
 
 ## Supported Board
 * Raspberry Pi Pico and Raspberry Pi Pico W
@@ -27,11 +28,12 @@ This library supports:
 |  4 | GP2 | SPI0_SCK | CLK (5) | CLK |
 |  5 | GP3 | SPI0_TX | CMD (3) | MOSI |
 |  6 | GP4 | SPI0_RX | DAT0 (7) | MISO |
-|  7 | GP5 | SPI0_CSn | CD/DAT3 (2) | CS |
+|  7 | GP5 | GPIO (Out) | CD/DAT3 (2) | CS |
 |  8 | GND | GND | VSS (6) | GND |
 | 36 | 3V3(OUT) | 3.3V | VDD (4) | 3V3 |
 
-#### Caution
+#### Note
+* Pin configuration by user is available. See Configuration section.
 * Wire length between Pico and SD card is very sensitive. Short wiring as possible is desired, otherwise errors such as Mount error, Preallocation error and Write fail will occur.
 
 ### Serial (CP2102 module)
@@ -40,6 +42,61 @@ This library supports:
 |  1 | GP0 | UART0_TX | RXD |
 |  2 | GP1 | UART0_RX | TXD |
 |  3 | GND | GND | GND |
+
+## Configuration
+Configure function, clock and pin assignment by `pico_fatfs_set_config()` with `pico_fatfs_spi_config_t`
+
+```
+  pico_fatfs_spi_config_t config = {
+      spi0,                   // spi_inst (spi0, spi1 or NULL)
+      CLK_SLOW_DEFAULT,       // clk_slow
+      CLK_FAST_DEFAULT,       // clk_fast
+      PIN_SPI0_MISO_DEFAULT,  // pin_miso (SPIx_RX)
+      PIN_SPI0_CS_DEFAULT,    // pin_cs
+      PIN_SPI0_SCK_DEFAULT,   // pin_sck  (SPIx_SCK)
+      PIN_SPI0_MOSI_DEFAULT,  // pin_mosi (SPIx_TX)
+      true                    // pullup
+  };
+  bool spi_configured = pico_fatfs_set_config(&config);
+```
+
+### SPI function or SPI PIO function
+* Choose `spi0`, `spi1` for SPI function or `NULL` explicitly for SPI PIO function
+* Note that SPI PIO function could be implicitly configured for the case of incompliant pin assignment for SPI function.
+* The return value of `pico_fatfs_set_config()` indicates finally configured function (true: SPI, false SPI PIO).
+
+### Clock confguration
+* By default, `clk_slow` is set to `100 * KHZ` and `clk_fast` is set to `50 * MHZ`.
+* For SPI function, the actual SPI clock frequency is set to clk_peri / N = 125.0 MHz / N, which is determined by spi_set_baudrate() in ['pico-sdk/src/rp2_common/hardware_spi/spi.c'](https://github.com/raspberrypi/pico-sdk/blob/2062372d203b372849d573f252cf7c6dc2800c0a/src/rp2_common/hardware_spi/spi.c#L41). Thus, to choose actually slower clock as `clk_fast`, smaller value than 31.25 MHz should be configured.
+* For SPI PIO funciton, close clock frequency value will be configured thanks to fractional clock divider of PIO.
+* As experimentally confirmed, SPI function tends to achieve higher frequency than SPI PIO function.
+
+### Pin assignment
+* Pin assignment needs to satisfy the below rule for SPI function configuration, othewise SPI PIO function will be configured implicitly even though `spi0` or `spi1` is designated.
+
+| SPI role | Pico pin category | GPx for SPI0 | GPx for SPI1 |
+----|----|----|----
+|  MISO | SPIx_RX | 0, 4, 16 | 8, 12 |
+|  SCK | SPIx_SCK | 2, 6, 18 | 10, 14 |
+|  MOSI | SPIx_TX | 3, 7, 19 | 11, 15 |
+
+### Pullup
+* Set `true` to use internal pullup for MISO and MOSI (recommended), otherwise, set `false` when external pullup resistors attached for MISO and MOSI as shown in [external pullup](doc/Pico_FatFs_Test_Schematic_w_pullup.png)
+
+### SPI PIO configuration
+* Configure PIO and state machine by `pico_fatfs_config_spi_pio()` for the case of SPI PIO function.
+* Default is PIO0 (`SPI_PIO_DEFAULT_PIO`) and state machine 0 (`SPI_PIO_DEFAULT_SM`).
+
+```
+  bool spi_configured = pico_fatfs_set_config(&config);
+  if (!spi_configured) {
+      pico_fatfs_config_spi_pio(pio0, 0);  // PIO, sm
+  }
+```
+
+## FatFs Function customization
+User can also override following functions as they are defined with _weak_ attribute.
+* `DWORD get_fattime()` in [tf_card.c](tf_card.c)
 
 ## How to build
 * See ["Getting started with Raspberry Pi Pico"](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf)
@@ -81,61 +138,8 @@ $ make -j4
 ```
 * Download "pico_fatfs_test.uf2" on RPI-RP2 drive
 
-## Configuration
-Configure clock and pin settings by `pico_fatfs_set_config()` with `pico_fatfs_spi_config_t`
-
-```
-  pico_fatfs_spi_config_t config = {
-      spi0,                   // spi_inst
-      CLK_SLOW_DEFAULT,       // clk_slow
-      CLK_FAST_DEFAULT,       // clk_fast
-      PIN_SPI0_MISO_DEFAULT,  // pin_miso
-      PIN_SPI0_CS_DEFAULT,    // pin_cs
-      PIN_SPI0_SCK_DEFAULT,   // pin_sck
-      PIN_SPI0_MOSI_DEFAULT,  // pin_mosi
-      true                    // pullup
-  };
-  pico_fatfs_set_config(&config);
-```
-
-### Clock confguration
-* By default, `clk_slow` is set to `100 * KHZ` and `clk_fast` is set to `50 * MHZ`.
-* The actual SPI clock frequency is set to clk_peri / N = 125.0 MHz / N, which is determined by spi_set_baudrate() in ['pico-sdk/src/rp2_common/hardware_spi/spi.c'](https://github.com/raspberrypi/pico-sdk/blob/2062372d203b372849d573f252cf7c6dc2800c0a/src/rp2_common/hardware_spi/spi.c#L41).
-* Thus, to choose actually slower clock as `clk_fast`, smaller value than 31.25 MHz should be configured.
-
-### Pin assignment
-* Choose `spi0` or `spi1` and designate corresponding pin assignment for `pin_miso`, `pin_cs`, `pin_sck` and `pin_mosi`.
-* Pin selection must follow pin assignment rule defined by `spi0` or `spi1`. See comments PIN_SPIx_XXX_DEFAULT in [tf_card.h](tf_card.h).
-
-### Pullup option
-* set `true` for MISO, MOSI to use internal pullup. (recommended)
-* set `false` for MISO, MOSI when external pullup resistors attached. [external pullup](doc/Pico_FatFs_Test_Schematic_w_pullup.png)
-
-### Other customization for pin configuration
-By default, `void pico_fatfs_init_spi()` in [tf_card.c](tf_card.c) runs for IO buffer initialization. User can override it by the re-definition to get more detail IO buffer configuration. However, the customizations such as slew rate and/or drive strength rarely improve the timing problem of SPI interface, therefore, physical approach such as shorter wiring would be recommended.
-
-in C++ code (e.g. main.cpp)
-```
-extern "C" {
-void pico_fatfs_init_spi(void)
-{
-  ...
-}
-}
-```
-or in C code (e.g. main.c)
-```
-void pico_fatfs_init_spi(void)
-{
-  ...
-}
-```
-
-### Function customization
-User can also override following functions as they are defined with _weak_ attribute.
-* `DWORD get_fattime()` in [tf_card.c](tf_card.c)
-
-## Benchmark Result (CLK_FAST = 50 MHz)
+## Benchmark Result
+### SPI function (CLK_FAST = 50 MHz)
 * Memorex microSD 2GB
 ```
 =====================
@@ -330,6 +334,65 @@ speed,max,min,avg
 KB/Sec,usec,usec,usec
 1288.9095, 412, 368, 396
 1289.2418, 412, 381, 396
+```
+
+### SPI function vs SPI PIO function
+* Samsung	PRO Plus 256GB (SPI function) (CLK_FAST = 32 MHz)
+```
+=====================
+== pico_fatfs_test ==
+=====================
+SPI configured
+mount ok
+Type is EXFAT
+Card size:  256.29 GB (GB = 1E9 bytes)
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512 bytes
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+956.6935, 9152, 499, 534
+951.0519, 7855, 501, 537
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+1695.9565, 365, 271, 301
+1695.9565, 365, 271, 301
+```
+
+* Samsung	PRO Plus 256GB (SPI PIO function) (CLK_FAST = 20 MHz)
+```
+=====================
+== pico_fatfs_test ==
+=====================
+SPI PIO configured
+mount ok
+Type is EXFAT
+Card size:  256.29 GB (GB = 1E9 bytes)
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512 bytes
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+951.9573, 8979, 499, 536
+946.7298, 9139, 501, 539
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+1517.3535, 396, 306, 336
+1517.3535, 350, 306, 336
 ```
 
 ## Application Example

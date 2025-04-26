@@ -12,7 +12,7 @@ jobs:
   build-binaries:
     strategy:
       matrix:
-        project: [test]
+        project: [test_spi, test_spi_pio]
         build: [build, build2]
         include:
           - build: build
@@ -32,7 +32,7 @@ jobs:
       - name: Build
         uses: ./.github/actions/build-and-rename
         with:
-          path: ${{ matrix.project }}
+          path: tests/${{ matrix.project }}
           build: ${{ matrix.build }}
           platform: ${{ matrix.platform }}
           board: ${{ matrix.board }}

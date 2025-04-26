@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+* Add SPI PIO support for the case that pin assignment is not compliant with SPI function
 
 ## [fatfs-R0.15-1.0.2] - 2025-04-20
 ### Added
