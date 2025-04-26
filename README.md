@@ -8,7 +8,7 @@ FatFs library on Raspberry Pi Pico / Pico 2.
 This library supports:
 * FatFs R0.15 ([http://elm-chan.org/fsw/ff/00index_e.html](http://elm-chan.org/fsw/ff/00index_e.html))
 * SD card access by SPI interface
-* SPI function applied for compliant pin assignment, otherwise SPI PIO applied for more flexible pin assignment
+* SPI function applied for compliant pin assignment, otherwise SPI PIO function applied for more flexible pin assignment
 * SD, SDHC, SDXC cards
 * FAT16, FAT32, exFAT formats
 * test projects for write / read speed benchmark
@@ -66,7 +66,7 @@ Configure function, clock and pin assignment by `pico_fatfs_set_config()` with `
 * The return value of `pico_fatfs_set_config()` indicates finally configured function (true: SPI, false SPI PIO).
 
 ### Clock confguration
-* By default, `clk_slow` is set to `100 * KHZ` and `clk_fast` is set to `50 * MHZ`.
+* By default, `clk_slow` is set to `100 * KHZ` and `clk_fast` is set to `32 * MHZ`.
 * For SPI function, the actual SPI clock frequency is set to clk_peri / N = 125.0 MHz / N, which is determined by spi_set_baudrate() in ['pico-sdk/src/rp2_common/hardware_spi/spi.c'](https://github.com/raspberrypi/pico-sdk/blob/2062372d203b372849d573f252cf7c6dc2800c0a/src/rp2_common/hardware_spi/spi.c#L41). Thus, to choose actually slower clock as `clk_fast`, smaller value than 31.25 MHz should be configured.
 * For SPI PIO funciton, close clock frequency value will be configured thanks to fractional clock divider of PIO.
 * As experimentally confirmed, SPI function tends to achieve higher frequency than SPI PIO function.
@@ -86,6 +86,7 @@ Configure function, clock and pin assignment by `pico_fatfs_set_config()` with `
 ### SPI PIO configuration
 * Configure PIO and state machine by `pico_fatfs_config_spi_pio()` for the case of SPI PIO function.
 * Default is PIO0 (`SPI_PIO_DEFAULT_PIO`) and state machine 0 (`SPI_PIO_DEFAULT_SM`).
+* Only effective when SPI PIO function configured. No impact when SPI function is configured.
 
 ```
   bool spi_configured = pico_fatfs_set_config(&config);
@@ -139,7 +140,7 @@ $ make -j4
 * Download "pico_fatfs_test.uf2" on RPI-RP2 drive
 
 ## Benchmark Result
-### SPI function (CLK_FAST = 50 MHz)
+### SPI function (CLK_FAST = 32 MHz)
 * Memorex microSD 2GB
 ```
 =====================
