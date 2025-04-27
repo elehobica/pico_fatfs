@@ -14,7 +14,7 @@ endif()
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 include($ENV{PICO_EXTRAS_PATH}/external/pico_extras_import.cmake)
 
-set(PROJECT_NAME "pico_fatfs_test" C CXX)
+set(PROJECT_NAME "pico_fatfs_test_variation1" C CXX)
 project(${PROJECT_NAME})
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
@@ -24,6 +24,7 @@ pico_sdk_init()
 add_subdirectory(../.. pico_fatfs)
 
 add_executable(${PROJECT_NAME}
+    ../common/benchmark.cpp
     main.cpp
 )
 

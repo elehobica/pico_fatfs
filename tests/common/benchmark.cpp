@@ -1,3 +1,5 @@
+#include "benchmark.h"
+
 #include <cstdint>
 #include <cstdio>
 
@@ -98,8 +100,10 @@ static void _error_blink(int count)
     }
 }
 
-int main()
+int benchmark(pico_fatfs_spi_config_t config)
 {
+    pico_fatfs_spi_config_t _config = config;
+
     FATFS fs;
     FIL fil;
     FRESULT fr;     /* FatFs return code */
@@ -144,26 +148,21 @@ int main()
     while (uart_is_readable(uart0)) {
         uart_getc(uart0);
     }
-    printf("Type any character to start\n");
-    while (!uart_is_readable_within_us(uart0, 1000));
+    printf("Type any character to start (p: SPI PIO)\n");
+    while (!uart_is_readable_within_us(uart0, 1000)) {};
+
+    int chr;
+    while ((chr = getchar_timeout_us(0)) == PICO_ERROR_TIMEOUT) {}
+
+    if (chr == 'p') {
+        _config.spi_inst = NULL;
+    }
 
     printf("=====================\n");
     printf("== pico_fatfs_test ==\n");
     printf("=====================\n");
 
-    // modify below if customized configuration is needed
-    //   Pin assignments for Pimoroni Pico DV demo base board
-    pico_fatfs_spi_config_t config = {
-        spi0,  // if unmatched SPI pin assignments with spi0/spi1 or explicitly designated as NULL, SPI PIO will be configured 
-        CLK_SLOW_DEFAULT,
-        CLK_FAST_DEFAULT,
-        19,    // MISO (SPIx_RX)
-        22,    // CS
-         5,    // SCK  (SPIx_SCK)
-        18,    // MOSI (SPIx_TX)
-        true   // use internal pullup
-    };
-    bool spi_configured = pico_fatfs_set_config(&config);
+    bool spi_configured = pico_fatfs_set_config(&_config);
     if (spi_configured) {
         printf("SPI configured\n");
     } else {
@@ -171,6 +170,7 @@ int main()
         pico_fatfs_config_spi_pio(SPI_PIO_DEFAULT_PIO, SPI_PIO_DEFAULT_SM);
         printf("SPI PIO configured\n");
     }
+
 
     for (int i = 0; i < 5; i++) {
         fr = f_mount(&fs, "", 1);
@@ -345,14 +345,6 @@ int main()
 
     f_close(&fil);
     printf("\nDone\n");
-
-    // OK blink
-    while (true) {
-        _set_led(true);
-        sleep_ms(1000);
-        _set_led(false);
-        sleep_ms(1000);
-    }
 
     return 0;
 }
