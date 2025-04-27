@@ -99,9 +99,9 @@ static pio_spi_inst_t _pio_spi = {
 static PIO _pio = SPI_PIO_DEFAULT_PIO;
 static uint _sm = SPI_PIO_DEFAULT_SM;
 static io_rw_32* _reg_clkdiv = NULL;
-static io_rw_32  _pio_clkdiv_slow = 255 << 16;
-static io_rw_32  _pio_clkdiv_fast = 255 << 16;
-
+static io_rw_32  _pio_clkdiv_slow = 4096 << 16;
+static io_rw_32  _pio_clkdiv_fast =  256 << 16;
+#define PIO_CLKDIV_LIMIT (0x00020000)  // fractional div x2.0 (8 system clock syscles per 1 SCK cycle)
 
 static inline uint32_t _millis(void)
 {
@@ -172,7 +172,7 @@ static void pico_fatfs_init_spi_pio(void)
     uint offset = pio_add_program(_pio_spi.pio, &spi_cpha0_program);
     pio_spi_init(_pio_spi.pio, _pio_spi.sm, offset,
         8,       // 8 bits per SPI frame
-        (float) f_clk_sys / (_config.clk_slow / KHZ) / 4,
+        (float) f_clk_sys / (_config.clk_slow / KHZ) / 4,  // 4 PIO input clock cycles to generate one SPI clock cycle
         false,   // CPHA = 0
         false,   // CPOL = 0
         _config.pin_sck,
@@ -183,6 +183,10 @@ static void pico_fatfs_init_spi_pio(void)
     _reg_clkdiv      = &(_pio_spi.pio->sm[_pio_spi.sm].clkdiv);
     _pio_clkdiv_slow = *_reg_clkdiv;
     _pio_clkdiv_fast = (io_rw_32) ((float) _pio_clkdiv_slow * _config.clk_slow / _config.clk_fast);
+    _pio_clkdiv_fast &= 0xffffff00;
+    if (_pio_clkdiv_fast < PIO_CLKDIV_LIMIT) {
+        _pio_clkdiv_fast = PIO_CLKDIV_LIMIT;
+    }
 }
 
 /* Initialize SPI */

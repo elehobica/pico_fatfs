@@ -6,7 +6,6 @@
 
 #define CLK_SLOW_DEFAULT     (100 * KHZ)
 #define CLK_FAST_DEFAULT     (32 * MHZ)
-#define CLK_FAST_DEFAULT_PIO (20 * MHZ)
 // CLK_FAST: actually set to clk_peri (= 125.0 MHz) / N,
 // which is determined by spi_set_baudrate() in pico-sdk/src/rp2_common/hardware_spi/spi.c
 

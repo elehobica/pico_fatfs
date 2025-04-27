@@ -65,11 +65,14 @@ Configure function, clock and pin assignment by `pico_fatfs_set_config()` with `
 * Note that SPI PIO function could be implicitly configured for the case of incompliant pin assignment for SPI function.
 * The return value of `pico_fatfs_set_config()` indicates finally configured function (true: SPI, false SPI PIO).
 
-### Clock confguration
-* By default, `clk_slow` is set to `100 * KHZ` and `clk_fast` is set to `32 * MHZ`.
-* For SPI function, the actual SPI clock frequency is set to clk_peri / N = 125.0 MHz / N, which is determined by spi_set_baudrate() in ['pico-sdk/src/rp2_common/hardware_spi/spi.c'](https://github.com/raspberrypi/pico-sdk/blob/2062372d203b372849d573f252cf7c6dc2800c0a/src/rp2_common/hardware_spi/spi.c#L41). Thus, to choose actually slower clock as `clk_fast`, smaller value than 31.25 MHz should be configured.
-* For SPI PIO funciton, close clock frequency value will be configured thanks to fractional clock divider of PIO.
-* As experimentally confirmed, SPI function tends to achieve higher frequency than SPI PIO function.
+### SCK frequency configuration
+* By default, `clk_slow` is `100 * KHZ` and `clk_fast` is `32 * MHZ`.
+* For SPI function, the actual SPI clock frequency is set to clk_peri / N, which is determined by spi_set_baudrate() in ['pico-sdk/src/rp2_common/hardware_spi/spi.c'](https://github.com/raspberrypi/pico-sdk/blob/2062372d203b372849d573f252cf7c6dc2800c0a/src/rp2_common/hardware_spi/spi.c#L41). Thus, to choose actually slower clock as `clk_fast` should be configured.
+  * For rp2040, 125 MHz / 4 is applied. SCK frequency is 31.25 MHz for clk_fast 32 MHz setting.
+  * For rp2350, 150 MHz / 5 is applied. SCK frequency is 30.0 MHz for clk_fast 32 MHz setting.
+* For SPI PIO funciton, close clock frequency value will be configured thanks to fractional clock divider of PIO, however, maximum SCK frequency is limited to the system frequency divided by 8.
+  * For rp2040, SCK freq <= 125 MHz / 8 is applied. SCK frequency is limited to 15.625 MHz.
+  * For rp2350, SCK freq <= 150 MHz / 8 is applied. SCK frequency is limited to 18.75 MHz.
 
 ### Pin assignment
 * Pin assignment needs to satisfy the below rule for SPI function configuration, otherwise SPI PIO function will be configured implicitly even though `spi0` or `spi1` is designated.
@@ -141,8 +144,9 @@ $ make -j4
 ```
 * Download "*.uf2" on RPI-RP2 or RP2350 drive
 
-## Benchmark Result
-### SPI function (CLK_FAST = 32 MHz)
+## Benchmark Reference
+* clk_fast = 32 MHz
+### SPI function (rp2040)
 * Memorex microSD 2GB
 ```
 =====================
@@ -339,8 +343,8 @@ KB/Sec,usec,usec,usec
 1289.2418, 412, 381, 396
 ```
 
-### SPI function vs SPI PIO function
-* Samsung	PRO Plus 256GB (SPI function) (CLK_FAST = 32 MHz)
+### SPI function vs SPI PIO function (rp2040)
+* Samsung	PRO Plus 256GB (SPI function)
 ```
 =====================
 == pico_fatfs_test ==
@@ -369,7 +373,7 @@ KB/Sec,usec,usec,usec
 1695.9565, 365, 271, 301
 ```
 
-* Samsung	PRO Plus 256GB (SPI PIO function) (CLK_FAST = 20 MHz)
+* Samsung	PRO Plus 256GB (SPI PIO function)
 ```
 =====================
 == pico_fatfs_test ==
@@ -396,6 +400,65 @@ speed,max,min,avg
 KB/Sec,usec,usec,usec
 1517.3535, 396, 306, 336
 1517.3535, 350, 306, 336
+```
+
+### SPI function vs SPI PIO function (rp2350)
+* Samsung	PRO Plus 256GB (SPI function)
+```
+=====================
+== pico_fatfs_test ==
+=====================
+SPI configured
+mount ok
+Type is EXFAT
+Card size:  256.29 GB (GB = 1E9 bytes)
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512 bytes
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+975.5473, 8958, 491, 524
+975.1667, 8890, 492, 524
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+2302.9387, 303, 191, 222
+2302.9387, 284, 191, 221
+```
+
+* Samsung	PRO Plus 256GB (SPI PIO function)
+```
+=====================
+== pico_fatfs_test ==
+=====================
+SPI PIO configured
+mount ok
+Type is EXFAT
+Card size:  256.29 GB (GB = 1E9 bytes)
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512 bytes
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+972.3221, 8973, 493, 526
+965.3755, 8924, 494, 529
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+1958.3549, 326, 230, 261
+1957.5881, 678, 231, 261
 ```
 
 ## Application Example
