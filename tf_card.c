@@ -101,7 +101,10 @@ static uint _sm = SPI_PIO_DEFAULT_SM;
 static io_rw_32* _reg_clkdiv = NULL;
 static io_rw_32  _pio_clkdiv_slow = 4096 << 16;
 static io_rw_32  _pio_clkdiv_fast =  256 << 16;
-#define PIO_CLKDIV_LIMIT (0x00020000)  // fractional div x2.0 (8 system clock syscles per 1 SCK cycle)
+#define PIO_CLKDIV_LIMIT (0x00018000)  // fractional div x1.5 (6 system clock syscles per 1 SCK cycle)
+
+static uint _clk_slow_freq = CLK_SLOW_DEFAULT;
+static uint _clk_fast_freq = CLK_FAST_DEFAULT;
 
 static inline uint32_t _millis(void)
 {
@@ -187,6 +190,9 @@ static void pico_fatfs_init_spi_pio(void)
     if (_pio_clkdiv_fast < PIO_CLKDIV_LIMIT) {
         _pio_clkdiv_fast = PIO_CLKDIV_LIMIT;
     }
+
+    _clk_fast_freq = (uint64_t) f_clk_sys * 1000 * 256 / (_pio_clkdiv_fast / 256)  / 4;
+    _clk_slow_freq = (uint64_t) f_clk_sys * 1000 * 256 / (_pio_clkdiv_slow / 256)  / 4;
 }
 
 /* Initialize SPI */
@@ -246,6 +252,11 @@ void pico_fatfs_init_spi(void)
         SPI_CPHA_0, /* cpha */
         SPI_MSB_FIRST /* order */
     );
+
+    FCLK_FAST();
+    _clk_fast_freq = spi_get_baudrate(_config.spi_inst);
+    FCLK_SLOW();
+    _clk_slow_freq = spi_get_baudrate(_config.spi_inst);
 }
 
 /* Exchange a byte */
@@ -705,6 +716,9 @@ bool pico_fatfs_set_config(pico_fatfs_spi_config_t* config)
 {
     _config = *config;
 
+    _clk_slow_freq = CLK_SLOW_DEFAULT;
+    _clk_fast_freq = CLK_FAST_DEFAULT;
+
     if (_config.spi_inst == NULL) {
         return false;
     } else if (_config.spi_inst != spi0 && _config.spi_inst != spi1) {
@@ -752,4 +766,14 @@ void pico_fatfs_config_spi_pio(PIO pio, uint sm)
 int pico_fatfs_reboot_spi(void)
 {
     return _select();
+}
+
+uint pico_fatfs_get_clk_slow_freq(void)
+{
+    return _clk_slow_freq;
+}
+
+uint pico_fatfs_get_clk_fast_freq(void)
+{
+    return _clk_fast_freq;
 }

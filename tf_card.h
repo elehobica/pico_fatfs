@@ -5,7 +5,7 @@
 #include "hardware/spi.h"
 
 #define CLK_SLOW_DEFAULT     (100 * KHZ)
-#define CLK_FAST_DEFAULT     (32 * MHZ)
+#define CLK_FAST_DEFAULT     (50 * MHZ)
 // CLK_FAST: actually set to clk_peri (= 125.0 MHz) / N,
 // which is determined by spi_set_baudrate() in pico-sdk/src/rp2_common/hardware_spi/spi.c
 
@@ -63,8 +63,28 @@ void pico_fatfs_config_spi_pio(PIO pio, uint sm);
 
 /**
 * Reset SPI access
+*
+* @return 1: OK, 0: Timeout
 */
 int pico_fatfs_reboot_spi(void);
+
+/**
+* Get clk_slow frequency
+* If called before disk_initialize(), it returns the default setting frequency.
+* If called after disk_initialize(), it returns the actual operation frequency.
+*
+* @return frequency in Hz
+*/
+uint pico_fatfs_get_clk_slow_freq(void);
+
+/**
+* Get clk_fast frequency
+* If called before disk_initialize(), it returns the default setting frequency.
+* If called after disk_initialize(), it returns the actual operation frequency.
+*
+* @return frequency in Hz
+*/
+uint pico_fatfs_get_clk_fast_freq(void);
 
 #ifdef __cplusplus
 }

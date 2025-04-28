@@ -66,16 +66,17 @@ Configure function, clock and pin assignment by `pico_fatfs_set_config()` with `
 * The return value of `pico_fatfs_set_config()` indicates finally configured function (true: SPI, false SPI PIO).
 
 ### SCK frequency configuration
-* By default, `clk_slow` is `100 * KHZ` and `clk_fast` is `32 * MHZ`.
-* For SPI function, the actual SPI clock frequency is set to clk_peri / N, which is determined by spi_set_baudrate() in ['pico-sdk/src/rp2_common/hardware_spi/spi.c'](https://github.com/raspberrypi/pico-sdk/blob/2062372d203b372849d573f252cf7c6dc2800c0a/src/rp2_common/hardware_spi/spi.c#L41). Thus, to choose actually slower clock as `clk_fast` should be configured.
-  * For rp2040, 125 MHz / 4 is applied. SCK frequency is 31.25 MHz for clk_fast 32 MHz setting.
-  * For rp2350, 150 MHz / 5 is applied. SCK frequency is 30.0 MHz for clk_fast 32 MHz setting.
-* For SPI PIO funciton, close clock frequency value will be configured thanks to fractional clock divider of PIO, however, maximum SCK frequency is limited to the system frequency divided by 8.
-  * For rp2040, SCK freq <= 125 MHz / 8 is applied. SCK frequency is limited to 15.625 MHz.
-  * For rp2350, SCK freq <= 150 MHz / 8 is applied. SCK frequency is limited to 18.75 MHz.
+* By default, `clk_slow` as `100 * KHZ` and `clk_fast` as `50 * MHZ` are used for the configuration.
+* For SPI function, the actual SPI clock frequency is set to clk_peri / 2N, which is determined by spi_set_baudrate() in ['pico-sdk/src/rp2_common/hardware_spi/spi.c'](https://github.com/raspberrypi/pico-sdk/blob/2062372d203b372849d573f252cf7c6dc2800c0a/src/rp2_common/hardware_spi/spi.c#L41).
+  * For rp2040, 125 MHz / 4 is applied. SCK frequency is 31.25 MHz.
+  * For rp2350, 150 MHz / 4 is applied. SCK frequency is 37.50 MHz.
+* For SPI PIO funciton, the maximum SCK frequency is limited up to the system frequency divided by 6.
+  * For rp2040, SCK freq <= 125 MHz / 6 is applied. SCK frequency is 20.83 MHz.
+  * For rp2350, SCK freq <= 150 MHz / 6 is applied. SCK frequency is 25.00 MHz.
+* The actual operating SCK frequency is available by `pico_fatfs_get_clk_fast_freq()` after `f_mount()`.
 
 ### Pin assignment
-* Pin assignment needs to satisfy the below rule for SPI function configuration, otherwise SPI PIO function will be configured implicitly even though `spi0` or `spi1` is designated.
+* For SPI function configuration, the pin assignment needs to satisfy the below constraints, otherwise SPI PIO function will be configured implicitly even though `spi0` or `spi1` is designated.
 
 | SPI role | Pico pin category | GPx for SPI0 | GPx for SPI1 |
 ----|----|----|----
@@ -145,7 +146,7 @@ $ make -j4
 * Download "*.uf2" on RPI-RP2 or RP2350 drive
 
 ## Benchmark Reference
-* clk_fast = 32 MHz
+* clk_fast = 50 MHz
 ### SPI function (rp2040)
 * Memorex microSD 2GB
 ```
