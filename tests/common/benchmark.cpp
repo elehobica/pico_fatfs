@@ -114,6 +114,7 @@ int benchmark(pico_fatfs_spi_config_t config)
 
     FATFS fs;
     FIL fil;
+    FIL log_fil;    /* Log file */
     FRESULT fr;     /* FatFs return code */
     UINT br;
     UINT bw;
@@ -229,6 +230,45 @@ int benchmark(pico_fatfs_spi_config_t config)
     printf("Manufacturing date : %d/%d\r\n\r\n", (int) cid[14] & 0xf, ((int) cid[13] & 0xf)*16 + ((int) (cid[14] >> 2) & 0xf) + 2000);
 #endif
 
+    fr = f_open(&log_fil, "benchmark_log.txt", FA_WRITE | FA_CREATE_ALWAYS);
+    if (fr != FR_OK) {
+        printf("log file open error %d\r\n", fr);
+        _error_blink(11);
+    }
+
+    char log_header[256];
+    int len = snprintf(log_header, sizeof(log_header), 
+        "=====================\r\n"
+        "== pico_fatfs_test ==\r\n"
+        "=====================\r\n"
+        "%s\r\n"
+        "%s configured\r\n"
+        "Configured clk_slow: %6.2f KHz, clk_fast: %5.2f MHz\r\n"
+        "Operation  clk_slow: %6.2f KHz, clk_fast: %5.2f MHz\r\n"
+        "Type is %s\r\n"
+        "Card size: %7.2f GB (GB = 1E9 bytes)\r\n\r\n"
+        "FILE_SIZE_MB = %d\r\n"
+        "BUF_SIZE = %d bytes\r\n\r\n",
+        _picoW ? PICOW_STR : PICO_STR,
+        spi_configured ? "SPI" : "SPI PIO",
+        pico_fatfs_get_clk_slow_freq() / 1e3, 
+        pico_fatfs_get_clk_fast_freq() / 1e6,
+        pico_fatfs_get_clk_slow_freq() / 1e3, 
+        pico_fatfs_get_clk_fast_freq() / 1e6,
+        fs.fs_type == FS_FAT12 ? "FAT12" : 
+        fs.fs_type == FS_FAT16 ? "FAT16" : 
+        fs.fs_type == FS_FAT32 ? "FAT32" : 
+        fs.fs_type == FS_EXFAT ? "EXFAT" : "unknown",
+        fs.csize * fs.n_fatent * 512E-9,
+        FILE_SIZE_MB,
+        BUF_SIZE);
+
+    fr = f_write(&log_fil, log_header, len, &bw);
+    if (fr != FR_OK || bw != len) {
+        printf("log file header write failed %d %d\r\n", fr, bw);
+        _error_blink(12);
+    }
+
     fr = f_open(&fil, "bench.dat", FA_READ | FA_WRITE | FA_CREATE_ALWAYS);
     if (fr != FR_OK) {
         printf("open error %d\r\n", fr);
@@ -306,6 +346,20 @@ int benchmark(pico_fatfs_spi_config_t config)
         t = to_ms_since_boot(get_absolute_time()) - t;
         s = f_size(&fil);
         printf("%7.4f, %d, %d, %d\r\n", s/t, maxLatency, minLatency, totalLatency/n);
+        
+        char log_write[128];
+        int log_len = snprintf(log_write, sizeof(log_write), 
+            "write speed and latency\r\n"
+            "speed,max,min,avg\r\n"
+            "KB/Sec,usec,usec,usec\r\n"
+            "%7.4f, %d, %d, %d\r\n", 
+            s/t, maxLatency, minLatency, totalLatency/n);
+        
+        fr = f_write(&log_fil, log_write, log_len, &bw);
+        if (fr != FR_OK || bw != log_len) {
+            printf("log file write test results write failed %d %d\r\n", fr, bw);
+            _error_blink(13);
+        }
     }
 
     printf("\r\n");
@@ -355,10 +409,25 @@ int benchmark(pico_fatfs_spi_config_t config)
         t = to_ms_since_boot(get_absolute_time()) - t;
         s = f_size(&fil);
         printf("%7.4f, %d, %d, %d\r\n", s/t, maxLatency, minLatency, totalLatency/n);
+        
+        char log_read[128];
+        int log_len = snprintf(log_read, sizeof(log_read), 
+            "read speed and latency\r\n"
+            "speed,max,min,avg\r\n"
+            "KB/Sec,usec,usec,usec\r\n"
+            "%7.4f, %d, %d, %d\r\n", 
+            s/t, maxLatency, minLatency, totalLatency/n);
+        
+        fr = f_write(&log_fil, log_read, log_len, &bw);
+        if (fr != FR_OK || bw != log_len) {
+            printf("log file read test results write failed %d %d\r\n", fr, bw);
+            _error_blink(14);
+        }
     }
 
     f_close(&fil);
-    printf("\r\nDone\r\n");
+    f_close(&log_fil);
+    printf("\r\nDone\r\nBenchmark results saved to benchmark_log.txt\r\n");
 
     return 0;
 }
