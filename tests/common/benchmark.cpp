@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <iostream>
 #include <iomanip>
+#include <fstream>
+#include <sstream>
 
 using namespace std;
 
@@ -372,6 +374,58 @@ int benchmark(pico_fatfs_spi_config_t config)
 
     cout << endl << "Done" << endl;
 
+    cout << "Save log to file? (y/n): ";
+    
+    int response;
+    while (true) {
+        while (!uart_is_readable(uart0)) {
+            sleep_ms(10);
+        }
+        response = uart_getc(uart0);
+        
+        cout << (char)response;
+        
+        if (response == 'y' || response == 'Y' || response == 'n' || response == 'N') {
+            cout << endl;
+            break;
+        }
+    }
+    
+    if (response == 'y' || response == 'Y') {
+        string filename = spi_configured ? "benchmark_SPI.log" : "benchmark_SPI_PIO.log";
+        
+        cout << "Saving log to " << filename << "..." << endl;
+        
+        FIL log_file;
+        fr = f_open(&log_file, filename.c_str(), FA_WRITE | FA_CREATE_ALWAYS);
+        if (fr != FR_OK) {
+            cout << "Error opening log file: " << fr << endl;
+        } else {
+            string header = "=== Benchmark Results ===\n";
+            header += spi_configured ? "SPI Mode\n" : "SPI PIO Mode\n";
+            header += "FILE_SIZE_MB = " + to_string(FILE_SIZE_MB) + "\n";
+            header += "BUF_SIZE = " + to_string(BUF_SIZE) + " bytes\n\n";
+            
+            UINT bw;
+            fr = f_write(&log_file, header.c_str(), header.length(), &bw);
+            
+            string write_results = "Write speed and latency\n";
+            write_results += "speed,max,min,avg\n";
+            write_results += "KB/Sec,usec,usec,usec\n";
+            
+            fr = f_write(&log_file, write_results.c_str(), write_results.length(), &bw);
+            
+            string read_results = "\nRead speed and latency\n";
+            read_results += "speed,max,min,avg\n";
+            read_results += "KB/Sec,usec,usec,usec\n";
+            
+            fr = f_write(&log_file, read_results.c_str(), read_results.length(), &bw);
+            
+            f_close(&log_file);
+            cout << "Log saved successfully." << endl;
+        }
+    }
+    
     sleep_ms(250);
     f_close(&fil);
 
