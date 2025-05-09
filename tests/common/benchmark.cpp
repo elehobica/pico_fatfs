@@ -370,8 +370,10 @@ int benchmark(pico_fatfs_spi_config_t config)
         cout << fixed << setprecision(4) << setw(7) << s/t << ", " << maxLatency << ", " << minLatency << ", " << totalLatency/n << endl;
     }
 
-    f_close(&fil);
     cout << endl << "Done" << endl;
+
+    sleep_ms(250);
+    f_close(&fil);
 
     return 0;
 }
