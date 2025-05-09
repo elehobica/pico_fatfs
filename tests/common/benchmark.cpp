@@ -390,7 +390,7 @@ int benchmark(pico_fatfs_spi_config_t config)
 
     cout << endl << "Done" << endl;
 
-    cout << "Save log to file? (y/n): ";
+    cout << "Save log to file? (y/n): " << flush;
     
     int response;
     while (true) {
