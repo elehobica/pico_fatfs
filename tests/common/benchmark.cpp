@@ -54,6 +54,8 @@ const uint32_t FILE_SIZE = 1000000UL*FILE_SIZE_MB;
 uint32_t buf32[(BUF_SIZE + 3)/4];
 uint8_t* buf = (uint8_t*)buf32;
 
+stringstream ssof;
+
 static bool _check_pico_w()
 {
     adc_init();
@@ -111,10 +113,18 @@ static void _error_blink(int count)
     }
 }
 
+static void flush_stream(stringstream& ss)
+{
+    cout << ss.str();
+    ssof << ss.str();
+    ss.str("");
+}
+
 int benchmark(pico_fatfs_spi_config_t config)
 {
     pico_fatfs_spi_config_t _config = config;
 
+    stringstream ss;
     FATFS fs;
     FIL fil;
     FRESULT fr;     /* FatFs return code */
@@ -136,6 +146,7 @@ int benchmark(pico_fatfs_spi_config_t config)
     gpio_set_function(0, GPIO_FUNC_UART);
     gpio_set_function(1, GPIO_FUNC_UART);
 
+    ssof.str("");
     cout << endl;
 
     // Pico / Pico W dependencies
@@ -167,28 +178,28 @@ int benchmark(pico_fatfs_spi_config_t config)
         _config.spi_inst = NULL;
     }
 
-    cout << "=====================" << endl;
-    cout << "== pico_fatfs_test ==" << endl;
-    cout << "=====================" << endl;
+    ss << "=====================" << endl;
+    ss << "== pico_fatfs_test ==" << endl;
+    ss << "=====================" << endl;
 
     if (_picoW) {
-        cout << PICOW_STR << endl;
+        ss << PICOW_STR << endl;
     } else {
-        cout << PICO_STR << endl;
+        ss << PICO_STR << endl;
     }
 
     bool spi_configured = pico_fatfs_set_config(&_config);
     if (spi_configured) {
-        cout << "SPI configured" << endl;
+        ss << "SPI configured" << endl;
     } else {
         // modify if customized configuration for SPI PIO is needed
         pico_fatfs_config_spi_pio(SPI_PIO_DEFAULT_PIO, SPI_PIO_DEFAULT_SM);
-        cout << "SPI PIO configured" << endl;
+        ss << "SPI PIO configured" << endl;
     }
-    cout << "Configured clk_slow: " << fixed << setw(6) << setprecision(2) 
-         << pico_fatfs_get_clk_slow_freq() / 1e3 << " KHz, clk_fast: " << setw(5) << setprecision(2) 
-         << pico_fatfs_get_clk_fast_freq() / 1e6 << " MHz" << endl;
-
+    ss << "Configured clk_slow: " << fixed << setw(6) << setprecision(2)
+       << pico_fatfs_get_clk_slow_freq() / 1e3 << " KHz, clk_fast: " << setw(5) << setprecision(2)
+       << pico_fatfs_get_clk_fast_freq() / 1e6 << " MHz" << endl;
+    flush_stream(ss);
 
     for (int i = 0; i < 5; i++) {
         fr = f_mount(&fs, "", 1);
@@ -200,46 +211,47 @@ int benchmark(pico_fatfs_spi_config_t config)
         cout << "mount error " << fr << endl;
         _error_blink(1);
     }
-    cout << "Operation  clk_slow: " << fixed << setw(6) << setprecision(2) 
-         << pico_fatfs_get_clk_slow_freq() / 1e3 << " KHz, clk_fast: " << setw(5) << setprecision(2) 
-         << pico_fatfs_get_clk_fast_freq() / 1e6 << " MHz" << endl;
-    cout << "mount ok" << endl;
+    ss << "Operation  clk_slow: " << fixed << setw(6) << setprecision(2)
+       << pico_fatfs_get_clk_slow_freq() / 1e3 << " KHz, clk_fast: " << setw(5) << setprecision(2)
+       << pico_fatfs_get_clk_fast_freq() / 1e6 << " MHz" << endl;
+    ss << "mount ok" << endl;
 
     switch (fs.fs_type) {
         case FS_FAT12:
-            cout << "Type is FAT12" << endl;
+            ss << "Type is FAT12" << endl;
             break;
         case FS_FAT16:
-            cout << "Type is FAT16" << endl;
+            ss << "Type is FAT16" << endl;
             break;
         case FS_FAT32:
-            cout << "Type is FAT32" << endl;
+            ss << "Type is FAT32" << endl;
             break;
         case FS_EXFAT:
-            cout << "Type is EXFAT" << endl;
+            ss << "Type is EXFAT" << endl;
             break;
         default:
-            cout << "Type is unknown" << endl;
+            ss << "Type is unknown" << endl;
             break;
     }
-    cout << "Card size: " << fixed << setw(7) << setprecision(2) 
-         << fs.csize * fs.n_fatent * 512E-9 << " GB (GB = 1E9 bytes)" << endl << endl;
+    ss << "Card size: " << fixed << setw(7) << setprecision(2)
+       << fs.csize * fs.n_fatent * 512E-9 << " GB (GB = 1E9 bytes)" << endl << endl;
+    flush_stream(ss);
 
 #if 0
     // Print CID
     BYTE cid[16];
     disk_ioctl(0, MMC_GET_CID, cid);
-    cout << "Manufacturer ID: " << hex << setw(2) << setfill('0') << (int) cid[0] << endl;
-    cout << "OEM ID: " << hex << setw(2) << setfill('0') << (int) cid[1] 
-         << setw(2) << setfill('0') << (int) cid[2] << endl;
-    cout << "Product: " << cid[3] << cid[4] << cid[5] << cid[6] << cid[7] << endl;
-    cout << dec << "Version: " << (int) (cid[8] >> 4) & 0xf << "." << (int) cid[8] & 0xf << endl;
-    cout << "Serial number: " << hex << setw(2) << setfill('0') << (int) cid[9]
-         << setw(2) << setfill('0') << (int) cid[10]
-         << setw(2) << setfill('0') << (int) cid[11]
-         << setw(2) << setfill('0') << (int) cid[12] << endl;
-    cout << dec << "Manufacturing date : " << (int) cid[14] & 0xf << "/"
-         << ((int) cid[13] & 0xf)*16 + ((int) (cid[14] >> 2) & 0xf) + 2000 << endl << endl;
+    ss << "Manufacturer ID: " << hex << setw(2) << setfill('0') << (int) cid[0] << endl;
+    ss << "OEM ID: " << hex << setw(2) << setfill('0') << (int) cid[1]
+       << setw(2) << setfill('0') << (int) cid[2] << endl;
+    ss << "Product: " << cid[3] << cid[4] << cid[5] << cid[6] << cid[7] << endl;
+    ss << dec << "Version: " << (int) (cid[8] >> 4) & 0xf << "." << (int) cid[8] & 0xf << endl;
+    ss << "Serial number: " << hex << setw(2) << setfill('0') << (int) cid[9]
+       << setw(2) << setfill('0') << (int) cid[10]
+       << setw(2) << setfill('0') << (int) cid[11]
+       << setw(2) << setfill('0') << (int) cid[12] << endl;
+    ss << dec << "Manufacturing date : " << (int) cid[14] & 0xf << "/"
+       << ((int) cid[13] & 0xf)*16 + ((int) (cid[14] >> 2) & 0xf) + 2000 << endl << endl;
 #endif
 
     fr = f_open(&fil, "bench.dat", FA_READ | FA_WRITE | FA_CREATE_ALWAYS);
@@ -257,15 +269,16 @@ int benchmark(pico_fatfs_spi_config_t config)
     }
     buf[BUF_SIZE-1] = '\n';
 
-    cout << "FILE_SIZE_MB = " << FILE_SIZE_MB << endl;
-    cout << "BUF_SIZE = " << BUF_SIZE << " bytes" << endl;
-    cout << "Starting write test, please wait." << endl << endl;
+    ss << "FILE_SIZE_MB = " << FILE_SIZE_MB << endl;
+    ss << "BUF_SIZE = " << BUF_SIZE << " bytes" << endl;
+    ss << "Starting write test, please wait." << endl << endl;
 
     // do write test
     uint32_t n = FILE_SIZE/BUF_SIZE;
-    cout << "write speed and latency" << endl;
-    cout << "speed,max,min,avg" << endl;
-    cout << "KB/Sec,usec,usec,usec" << endl;
+    ss << "write speed and latency" << endl;
+    ss << "speed,max,min,avg" << endl;
+    ss << "KB/Sec,usec,usec,usec" << endl;
+    flush_stream(ss);
     for (uint8_t nTest = 0; nTest < WRITE_COUNT; nTest++) {
         fr = f_lseek(&fil, 0);
         if (fr != FR_OK) {
@@ -318,14 +331,16 @@ int benchmark(pico_fatfs_spi_config_t config)
         }
         t = to_ms_since_boot(get_absolute_time()) - t;
         s = f_size(&fil);
-        cout << fixed << setprecision(4) << setw(7) << s/t << ", " << maxLatency << ", " << minLatency << ", " << totalLatency/n << endl;
+        ss << fixed << setprecision(4) << setw(7) << s/t << ", " << maxLatency << ", " << minLatency << ", " << totalLatency/n << endl;
+        flush_stream(ss);
     }
 
-    cout << endl;
-    cout << "Starting read test, please wait." << endl << endl;
-    cout << "read speed and latency" << endl;
-    cout << "speed,max,min,avg" << endl;
-    cout << "KB/Sec,usec,usec,usec" << endl;
+    ss << endl;
+    ss << "Starting read test, please wait." << endl << endl;
+    ss << "read speed and latency" << endl;
+    ss << "speed,max,min,avg" << endl;
+    ss << "KB/Sec,usec,usec,usec" << endl;
+    flush_stream(ss);
 
     // do read test
     for (uint8_t nTest = 0; nTest < READ_COUNT; nTest++) {
@@ -367,7 +382,8 @@ int benchmark(pico_fatfs_spi_config_t config)
         }
         t = to_ms_since_boot(get_absolute_time()) - t;
         s = f_size(&fil);
-        cout << fixed << setprecision(4) << setw(7) << s/t << ", " << maxLatency << ", " << minLatency << ", " << totalLatency/n << endl;
+        ss << fixed << setprecision(4) << setw(7) << s/t << ", " << maxLatency << ", " << minLatency << ", " << totalLatency/n << endl;
+        flush_stream(ss);
     }
 
     cout << endl << "Done" << endl;
