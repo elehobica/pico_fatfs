@@ -765,6 +765,17 @@ void pico_fatfs_config_spi_pio(PIO pio, uint sm)
 
 int pico_fatfs_reboot_spi(void)
 {
+    // Send 32 cycles of CS low
+    FCLK_SLOW();
+    CS_HIGH();
+    sleep_ms(10);
+    CS_LOW();
+    for (int i = 0; i < 4; i++) {
+        xchg_spi(0xFF); /* Dummy clock (force DO enabled) */
+    }
+    CS_HIGH();
+    sleep_ms(10);
+
     return _select();
 }
 
