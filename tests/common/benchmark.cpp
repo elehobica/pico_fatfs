@@ -21,11 +21,15 @@ bool _picoW = false;
 bool _led = false;
 
 #if defined(PICO_RP2350A)
-#define PICO_STR "Pico 2 (rp2350)"
-#define PICOW_STR "Pico 2 W (rp2350)"
+#define PICO_STR_LONG "Pico 2 (rp2350)"
+#define PICOW_STR_LONG "Pico 2 W (rp2350)"
+#define PICO_STR "pico2"
+#define PICOW_STR "pico2w"
 #else
-#define PICO_STR "Pico (rp2040)"
-#define PICOW_STR "Pico W (rp2040)"
+#define PICO_STR_LONG "Pico (rp2040)"
+#define PICOW_STR_LONG "Pico W (rp2040)"
+#define PICO_STR "pico"
+#define PICOW_STR "picow"
 #endif
 
 // Set PRE_ALLOCATE true to pre-allocate file clusters.
@@ -184,11 +188,7 @@ int benchmark(pico_fatfs_spi_config_t config)
     ss << "== pico_fatfs_test ==" << endl;
     ss << "=====================" << endl;
 
-    if (_picoW) {
-        ss << PICOW_STR << endl;
-    } else {
-        ss << PICO_STR << endl;
-    }
+    ss << (_picoW ? PICOW_STR_LONG : PICO_STR_LONG) << endl;
 
     bool spi_configured = pico_fatfs_set_config(&_config);
     if (spi_configured) {
@@ -408,7 +408,8 @@ int benchmark(pico_fatfs_spi_config_t config)
     }
     
     if (response == 'y' || response == 'Y') {
-        string filename = spi_configured ? "benchmark_SPI.log" : "benchmark_SPI_PIO.log";
+        string pico_str = _picoW ? PICOW_STR : PICO_STR;
+        string filename = "benchmark_" + pico_str + (spi_configured ? "_SPI" : "_SPI_PIO") + ".log";
         
         cout << "Saving log to " << filename << "..." << endl;
         
