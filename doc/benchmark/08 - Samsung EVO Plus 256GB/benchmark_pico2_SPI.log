@@ -1,0 +1,28 @@
+=====================
+== pico_fatfs_test ==
+=====================
+Pico 2 (rp2350)
+SPI configured
+Configured clk_slow: 100.00 KHz, clk_fast: 50.00 MHz
+Operation  clk_slow: 100.00 KHz, clk_fast: 37.50 MHz
+mount ok
+Type is EXFAT
+Card size:  256.29 GB (GB = 1E9 bytes)
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512 bytes
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+172.3136, 48972, 1677, 2969
+168.8910, 8408, 1679, 3030
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+1364.5415, 481, 353, 374
+1364.9141, 481, 356, 374

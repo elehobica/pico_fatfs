@@ -7,15 +7,16 @@
 FatFs library on Raspberry Pi Pico / Pico 2.
 This library supports:
 * FatFs R0.15 ([http://elm-chan.org/fsw/ff/00index_e.html](http://elm-chan.org/fsw/ff/00index_e.html))
-* SD card access by SPI interface
-* SPI function applied for compliant pin assignment, otherwise SPI PIO function applied for more flexible pin assignment
-* SD, SDHC, SDXC cards
-* FAT16, FAT32, exFAT formats
-* test projects for write / read speed benchmark
+* Applicable for two types of SPI master functions
+  * SPI function applied for compliant pin assignment with native SPI interface of Raspberry Pi Pico series
+  * Otherwise, SPI PIO function applied for more flexible pin assignment
+* SD, SDHC, SDXC card types
+* FAT16, FAT32, exFAT format types
+* Test projects for write / read speed benchmark
 
 ## Supported Board
-* Raspberry Pi Pico and Raspberry Pi Pico W
-* Raspberry Pi Pico 2 and Raspberry Pi Pico 2W
+* Raspberry Pi Pico / Pico W
+* Raspberry Pi Pico 2 / Pico 2W
 
 ## Ciruit Diagram
 ![Circuit Diagram](doc/Pico_FatFs_Test_Schematic.png)
@@ -65,14 +66,18 @@ Configure function, clock and pin assignment by `pico_fatfs_set_config()` with `
 * Note that SPI PIO function could be implicitly configured for the case of incompliant pin assignment for SPI function.
 * The return value of `pico_fatfs_set_config()` indicates finally configured function (true: SPI, false SPI PIO).
 
-### Clock confguration
-* By default, `clk_slow` is set to `100 * KHZ` and `clk_fast` is set to `32 * MHZ`.
-* For SPI function, the actual SPI clock frequency is set to clk_peri / N = 125.0 MHz / N, which is determined by spi_set_baudrate() in ['pico-sdk/src/rp2_common/hardware_spi/spi.c'](https://github.com/raspberrypi/pico-sdk/blob/2062372d203b372849d573f252cf7c6dc2800c0a/src/rp2_common/hardware_spi/spi.c#L41). Thus, to choose actually slower clock as `clk_fast`, smaller value than 31.25 MHz should be configured.
-* For SPI PIO funciton, close clock frequency value will be configured thanks to fractional clock divider of PIO.
-* As experimentally confirmed, SPI function tends to achieve higher frequency than SPI PIO function.
+### SCK frequency configuration
+* By default, `clk_slow` as `100 * KHZ` and `clk_fast` as `50 * MHZ` are used for the configuration.
+* For SPI function, the actual SPI clock frequency is set to clk_peri / 2N, which is determined by spi_set_baudrate() in ['pico-sdk/src/rp2_common/hardware_spi/spi.c'](https://github.com/raspberrypi/pico-sdk/blob/2062372d203b372849d573f252cf7c6dc2800c0a/src/rp2_common/hardware_spi/spi.c#L41).
+  * For rp2040, 125 MHz / 4 is applied. SCK frequency is 31.25 MHz.
+  * For rp2350, 150 MHz / 4 is applied. SCK frequency is 37.50 MHz.
+* For SPI PIO funciton, the maximum SCK frequency is limited up to the system frequency divided by 6.
+  * For rp2040, SCK freq <= 125 MHz / 6 is applied. SCK frequency is 20.83 MHz.
+  * For rp2350, SCK freq <= 150 MHz / 6 is applied. SCK frequency is 25.00 MHz.
+* The actual operating SCK frequency is available by `pico_fatfs_get_clk_fast_freq()` after `f_mount()`.
 
 ### Pin assignment
-* Pin assignment needs to satisfy the below rule for SPI function configuration, otherwise SPI PIO function will be configured implicitly even though `spi0` or `spi1` is designated.
+* For SPI function configuration, the pin assignment needs to satisfy the below constraints, otherwise SPI PIO function will be configured implicitly even though `spi0` or `spi1` is designated.
 
 | SPI role | Pico pin category | GPx for SPI0 | GPx for SPI1 |
 ----|----|----|----
@@ -141,262 +146,47 @@ $ make -j4
 ```
 * Download "*.uf2" on RPI-RP2 or RP2350 drive
 
-## Benchmark Result
-### SPI function (CLK_FAST = 32 MHz)
-* Memorex microSD 2GB
-```
-=====================
-== pico_fatfs_test ==
-=====================
-mount ok
-Type is FAT16
-Card size:    2.00 GB (GB = 1E9 bytes)
+## Benchmark
+### Condition
+* Board: Raspberry Pi Pico / Pico 2
+* Inrerface function: SPI / SPI PIO
+* SPI clock frequency: clk_fast = 50 MHz (See logs for actual operating frequency)
 
-FILE_SIZE_MB = 5
-BUF_SIZE = 512 bytes
-Starting write test, please wait.
+### SD cards (microsd)
+* Click the number for the logs in detail
 
-write speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-79.8977, 215736, 2447, 6404
-78.9926, 210883, 2460, 6457
+| # | Image | Vendor | Name | Capacity | P/N | Standard | Format |
+----|----|----|----|----|----|---|-----
+| <a href="doc/benchmark/01 - Memorex 2GB/" target="_blank">1</a> | <img src="doc/microsd/memorex_2g.jpg" width="60" /> | Memorex | - | 2GB | - | microSD | FAT16 |
+| <a href="doc/benchmark/02 - Sandisk 16GB/">2</a> | <img src="doc/microsd/sandisk_16g.jpg" width="60" /> | SanDisk | - | 16GB | - | microSDHC C4 | FAT32 |
+| <a href="doc/benchmark/03 - Samsung EVO Plus 32GB/">3</a> | <img src="doc/microsd/samsung_evo_plus_32g.jpg" width="60" /> | Sansung | EVO Plus | 32GB | MB-MC32GA | microSDHC UHS-I U1 | FAT32 |
+| <a href="doc/benchmark/04 - Sandisk High Endurance 64GB/">4</a> | <img src="doc/microsd/sandisk_high_endurance_64g.jpg" width="60" /> | Sandisk | High Endurance | 64GB | SDSQQNR-064G | microSDXC UHS-I C10 U3 V30 | exFAT |
+| <a href="doc/benchmark/05 - Sandisk Ultra 64GB/">5</a> | <img src="doc/microsd/sandisk_ultra_64g.jpg" width="60" /> | Sandisk | Ultra | 64GB | SDSQUAC-64G-GN6MN | microSDXC UHS-I A1 C10 U1 | exFAT |
+| <a href="doc/benchmark/06 - Sandisk Ultra 128GB/">6</a> | <img src="doc/microsd/sandisk_ultra_128g.jpg" width="60" /> | Sandisk | Ultra | 128GB | SDSQUNR-128G | microSDXC UHS-I C10 | exFAT |
+| <a href="doc/benchmark/07 - Sandisk Extreme 128GB/">7</a> | <img src="doc/microsd/sandisk_extreme_128g.jpg" width="60" /> | Sandisk | Extreme | 128GB | SDSQXAA-128G-GN6MN | microSDXC UHS-I A2 U3 V30 | exFAT |
+| <a href="doc/benchmark/08 - Samsung EVO Plus 256GB/">8</a> | <img src="doc/microsd/samsung_evo_plus_256g.jpg" width="60" /> | Samsung | EVO Plus | 256GB | MB-MC256KA | microSDXC UHS-I A2 U3 V30 | exFAT |
+| <a href="doc/benchmark/09 - Kioxia Exceria G2 256GB/">9</a> | <img src="doc/microsd/Kioxia_exceria_g2_256g.jpg" width="60" /> | Xioxia  | Exceria G2 | 256GB | LMEX2L256GG2 | microSDXC UHS-I U3 V30 | exFAT |
+| <a href="doc/benchmark/10 - Sandisk Extreme PRO 256GB/">10</a> | <img src="doc/microsd/sandisk_extreme_pro_256g.jpg" width="60" /> | Sandisk | Extreme PRO | 256GB | SDSQXCD-256G-GN6MA | microSDXC UHS-I A2 U3 V30 | exFAT |
+| <a href="doc/benchmark/11 - Samsung PRO Plus 256GB/">11</a> | <img src="doc/microsd/samsung_pro_plus_256g.jpg" width="60" /> | Samsung | PRO Plus | 256GB | MB-MD256SA | microSDXC UHS-I A2 U3 V30 | exFAT |
 
-Starting read test, please wait.
+### Write performance
+* The speed in KB/s (1 KB = 1000 bytes) for the case of writing total 5MB file divided by 512 byte accesses.
 
-read speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-827.0769, 2173, 500, 618
-827.2137, 2171, 500, 618
-```
+<img src="doc/benchmark/write_performance_2025_0510.png" width="800" /> 
 
-* SanDisk microSDHC 16GB (C4)
-```
-=====================
-== pico_fatfs_test ==
-=====================
-mount ok
-Type is FAT32
-Card size:   15.92 GB (GB = 1E9 bytes)
+### Write latency
+* The maximum / minimum / average latency to return from single `f_write()` for 512 bytes in microseconds.
+* The latency of the first time call of `f_write()` is excluded to ignore the time required for the initialization.
 
-FILE_SIZE_MB = 5
-BUF_SIZE = 512 bytes
-Starting write test, please wait.
+<img src="doc/benchmark/write_latency_2025_0510.png" width="840" /> 
 
-write speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-247.8279, 31470, 1621, 2063
-232.7164, 56411, 1596, 2197
+### Read performance
+* The speed in KB/s (1 KB = 1000 bytes) for the case of reading total 5MB file divided by 512 byte accesses.
 
-Starting read test, please wait.
+<img src="doc/benchmark/read_performance_2025_0510.png" width="800" /> 
 
-read speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-792.8449, 3412, 621, 644
-792.9706, 3411, 633, 644
-```
+### Read latency
+* The maximum / minimum / average latency to return from single `f_read()` for 512 bytes in microseconds.
+* The latency of the first time call of `f_read()` is excluded to ignore the time required for the initialization.
 
-* Sansung microSDHC EVO Plus 32GB (UHS-I U1)
-```
-=====================
-== pico_fatfs_test ==
-=====================
-mount ok
-Type is FAT32
-Card size:   32.00 GB (GB = 1E9 bytes)
-
-FILE_SIZE_MB = 5
-BUF_SIZE = 512 bytes
-Starting write test, please wait.
-
-write speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-447.7192, 6896, 1007, 1142
-446.4797, 7589, 1024, 1145
-
-Starting read test, please wait.
-
-read speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-974.9766, 1050, 403, 524
-974.4066, 1049, 402, 524
-```
-
-* SanDisk microSDXC Ultra A1 64GB (UHS-I U1)
-```
-=====================
-== pico_fatfs_test ==
-=====================
-mount ok
-Type is EXFAT
-Card size:   63.83 GB (GB = 1E9 bytes)
-
-FILE_SIZE_MB = 5
-BUF_SIZE = 512 bytes
-Starting write test, please wait.
-
-write speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-457.3436, 39688, 890, 1118
-459.7830, 19127, 896, 1112
-
-Starting read test, please wait.
-
-read speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-1226.3135, 426, 398, 416
-1226.0127, 425, 408, 416
-```
-
-* SanDisk microSDXC Ultra A1 128GB (UHS-I C10 U1)
-```
-=====================
-== pico_fatfs_test ==
-=====================
-mount ok
-Type is EXFAT
-Card size:  127.83 GB (GB = 1E9 bytes)
-
-FILE_SIZE_MB = 5
-BUF_SIZE = 512 bytes
-Starting write test, please wait.
-
-write speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-446.6393, 37701, 951, 1145
-444.8114, 36075, 960, 1150
-
-Starting read test, please wait.
-
-read speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-1310.1887, 416, 381, 389
-1310.1887, 414, 381, 389
-```
-
-* SanDisk microSDXC Ultra A1 512GB (UHS-I U1)
-```
-=====================
-== pico_fatfs_test ==
-=====================
-mount ok
-Type is EXFAT
-Card size:  511.80 GB (GB = 1E9 bytes)
-
-FILE_SIZE_MB = 5
-BUF_SIZE = 512 bytes
-Starting write test, please wait.
-
-write speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-430.6728, 5316, 952, 1187
-430.5244, 25833, 953, 1188
-
-Starting read test, please wait.
-
-read speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-1304.3778, 408, 366, 391
-1304.7181, 408, 378, 391
-```
-
-* SanDisk microSDXC Ultra A2 1TB (UHS-I U3 V30)
-```
-=====================
-== pico_fatfs_test ==
-=====================
-mount ok
-Type is EXFAT
-Card size: 1023.74 GB (GB = 1E9 bytes)
-
-FILE_SIZE_MB = 5
-BUF_SIZE = 512 bytes
-Starting write test, please wait.
-
-write speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-417.6842, 32387, 989, 1224
-414.7391, 19074, 986, 1233
-
-Starting read test, please wait.
-
-read speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-1288.9095, 412, 368, 396
-1289.2418, 412, 381, 396
-```
-
-### SPI function vs SPI PIO function
-* Samsung	PRO Plus 256GB (SPI function) (CLK_FAST = 32 MHz)
-```
-=====================
-== pico_fatfs_test ==
-=====================
-SPI configured
-mount ok
-Type is EXFAT
-Card size:  256.29 GB (GB = 1E9 bytes)
-
-FILE_SIZE_MB = 5
-BUF_SIZE = 512 bytes
-Starting write test, please wait.
-
-write speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-956.6935, 9152, 499, 534
-951.0519, 7855, 501, 537
-
-Starting read test, please wait.
-
-read speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-1695.9565, 365, 271, 301
-1695.9565, 365, 271, 301
-```
-
-* Samsung	PRO Plus 256GB (SPI PIO function) (CLK_FAST = 20 MHz)
-```
-=====================
-== pico_fatfs_test ==
-=====================
-SPI PIO configured
-mount ok
-Type is EXFAT
-Card size:  256.29 GB (GB = 1E9 bytes)
-
-FILE_SIZE_MB = 5
-BUF_SIZE = 512 bytes
-Starting write test, please wait.
-
-write speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-951.9573, 8979, 499, 536
-946.7298, 9139, 501, 539
-
-Starting read test, please wait.
-
-read speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-1517.3535, 396, 306, 336
-1517.3535, 350, 306, 336
-```
-
-## Application Example
-* [RPi_Pico_WAV_Player](https://github.com/elehobica/RPi_Pico_WAV_Player)
+<img src="doc/benchmark/read_latency_2025_0510.png" width="840" /> 

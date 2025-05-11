@@ -12,7 +12,7 @@ jobs:
   build-binaries:
     strategy:
       matrix:
-        project: [test_spi, test_spi_pio]
+        project: [test_default, test_variation1]
         build: [build, build2]
         include:
           - build: build
