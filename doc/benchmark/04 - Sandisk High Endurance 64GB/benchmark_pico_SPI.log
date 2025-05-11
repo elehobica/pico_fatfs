@@ -1,0 +1,28 @@
+=====================
+== pico_fatfs_test ==
+=====================
+Pico (rp2040)
+SPI configured
+Configured clk_slow: 100.00 KHz, clk_fast: 50.00 MHz
+Operation  clk_slow:  99.68 KHz, clk_fast: 31.25 MHz
+mount ok
+Type is EXFAT
+Card size:   63.83 GB (GB = 1E9 bytes)
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512 bytes
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+366.4917, 20382, 1087, 1396
+371.8893, 20701, 1087, 1375
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+937.8503, 705, 468, 545
+939.4363, 653, 472, 544
