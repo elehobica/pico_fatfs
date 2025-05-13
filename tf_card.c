@@ -92,12 +92,10 @@ static uint _pin_mosi_conf[2][4] = {
 
 /* SPI PIO inst (default) */
 static pio_spi_inst_t _pio_spi = {
-    .pio    = pio0,
-    .sm     = 0,
+    .pio    = SPI_PIO_DEFAULT_PIO,
+    .sm     = SPI_PIO_DEFAULT_SM,
     .cs_pin = 0
 };
-static PIO _pio = SPI_PIO_DEFAULT_PIO;
-static uint _sm = SPI_PIO_DEFAULT_SM;
 static io_rw_32* _reg_clkdiv = NULL;
 static io_rw_32  _pio_clkdiv_slow = 4096 << 16;
 static io_rw_32  _pio_clkdiv_fast =  256 << 16;
@@ -163,8 +161,6 @@ static void pico_fatfs_init_spi_pio(void)
     /* chip _select invalid*/
     CS_HIGH();
 
-    _pio_spi.pio    = _pio;
-    _pio_spi.sm     = _sm;
     _pio_spi.cs_pin = _config.pin_cs;
 
     uint f_clk_sys = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_SYS);
@@ -753,8 +749,8 @@ bool pico_fatfs_set_config(pico_fatfs_spi_config_t* config)
 
 void pico_fatfs_config_spi_pio(PIO pio, uint sm)
 {
-    _pio = pio;
-    _sm = sm;
+    _pio_spi.pio = pio;
+    _pio_spi.sm  = sm;
 }
 
 int pico_fatfs_reboot_spi(void)

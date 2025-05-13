@@ -165,7 +165,7 @@ $ make -j4
 | <a href="doc/benchmark/06 - Sandisk Ultra 128GB/">6</a> | <img src="doc/microsd/sandisk_ultra_128g.jpg" width="60" /> | Sandisk | Ultra | 128GB | SDSQUNR-128G | microSDXC UHS-I C10 | exFAT |
 | <a href="doc/benchmark/07 - Sandisk Extreme 128GB/">7</a> | <img src="doc/microsd/sandisk_extreme_128g.jpg" width="60" /> | Sandisk | Extreme | 128GB | SDSQXAA-128G-GN6MN | microSDXC UHS-I A2 U3 V30 | exFAT |
 | <a href="doc/benchmark/08 - Samsung EVO Plus 256GB/">8</a> | <img src="doc/microsd/samsung_evo_plus_256g.jpg" width="60" /> | Samsung | EVO Plus | 256GB | MB-MC256KA | microSDXC UHS-I A2 U3 V30 | exFAT |
-| <a href="doc/benchmark/09 - Kioxia Exceria G2 256GB/">9</a> | <img src="doc/microsd/Kioxia_exceria_g2_256g.jpg" width="60" /> | Xioxia  | Exceria G2 | 256GB | LMEX2L256GG2 | microSDXC UHS-I U3 V30 | exFAT |
+| <a href="doc/benchmark/09 - Kioxia Exceria G2 256GB/">9</a> | <img src="doc/microsd/kioxia_exceria_g2_256g.jpg" width="60" /> | Xioxia  | Exceria G2 | 256GB | LMEX2L256GG2 | microSDXC UHS-I U3 V30 | exFAT |
 | <a href="doc/benchmark/10 - Sandisk Extreme PRO 256GB/">10</a> | <img src="doc/microsd/sandisk_extreme_pro_256g.jpg" width="60" /> | Sandisk | Extreme PRO | 256GB | SDSQXCD-256G-GN6MA | microSDXC UHS-I A2 U3 V30 | exFAT |
 | <a href="doc/benchmark/11 - Samsung PRO Plus 256GB/">11</a> | <img src="doc/microsd/samsung_pro_plus_256g.jpg" width="60" /> | Samsung | PRO Plus | 256GB | MB-MD256SA | microSDXC UHS-I A2 U3 V30 | exFAT |
 
@@ -175,7 +175,7 @@ $ make -j4
 <img src="doc/benchmark/write_performance_2025_0510.png" width="800" /> 
 
 ### Write latency
-* The maximum / minimum / average latency to return from single `f_write()` for 512 bytes in microseconds.
+* The maximum / minimum / average latency in microseconds to get the response from single `f_write()` for 512 bytes.
 * The latency of the first time call of `f_write()` is excluded to ignore the time required for the initialization.
 
 <img src="doc/benchmark/write_latency_2025_0510.png" width="840" /> 
@@ -186,7 +186,7 @@ $ make -j4
 <img src="doc/benchmark/read_performance_2025_0510.png" width="800" /> 
 
 ### Read latency
-* The maximum / minimum / average latency to return from single `f_read()` for 512 bytes in microseconds.
+* The maximum / minimum / average latency in microseconds to get the response from single `f_read()` for 512 bytes.
 * The latency of the first time call of `f_read()` is excluded to ignore the time required for the initialization.
 
 <img src="doc/benchmark/read_latency_2025_0510.png" width="840" /> 
