@@ -169,24 +169,26 @@ $ make -j4
 | <a href="doc/benchmark/10 - Sandisk Extreme PRO 256GB/">10</a> | <img src="doc/microsd/sandisk_extreme_pro_256g.jpg" width="60" /> | Sandisk | Extreme PRO | 256GB | SDSQXCD-256G-GN6MA | microSDXC UHS-I A2 U3 V30 | exFAT |
 | <a href="doc/benchmark/11 - Samsung PRO Plus 256GB/">11</a> | <img src="doc/microsd/samsung_pro_plus_256g.jpg" width="60" /> | Samsung | PRO Plus | 256GB | MB-MD256SA | microSDXC UHS-I A2 U3 V30 | exFAT |
 
+* For Samsung PRO Plus, benchmark tests are measured every time after power cycle, otherwise the write performance becomes illegally high due to internal cache? in case of same contents writing.
+
 ### Write performance
 * The speed in KB/s (1 KB = 1000 bytes) for the case of writing total 5MB file divided by 512 byte accesses.
 
-<img src="doc/benchmark/write_performance_2025_0510.png" width="800" /> 
+<img src="doc/benchmark/write_performance.png" width="800" /> 
 
 ### Write latency
 * The maximum / minimum / average latency in microseconds to get the response from single `f_write()` for 512 bytes.
 * The latency of the first time call of `f_write()` is excluded to ignore the time required for the initialization.
 
-<img src="doc/benchmark/write_latency_2025_0510.png" width="840" /> 
+<img src="doc/benchmark/write_latency.png" width="840" /> 
 
 ### Read performance
 * The speed in KB/s (1 KB = 1000 bytes) for the case of reading total 5MB file divided by 512 byte accesses.
 
-<img src="doc/benchmark/read_performance_2025_0510.png" width="800" /> 
+<img src="doc/benchmark/read_performance.png" width="800" /> 
 
 ### Read latency
 * The maximum / minimum / average latency in microseconds to get the response from single `f_read()` for 512 bytes.
 * The latency of the first time call of `f_read()` is excluded to ignore the time required for the initialization.
 
-<img src="doc/benchmark/read_latency_2025_0510.png" width="840" /> 
+<img src="doc/benchmark/read_latency.png" width="840" /> 
