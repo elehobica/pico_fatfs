@@ -62,7 +62,7 @@ static
 BYTE CardType;          /* Card type flags */
 
 /* SPI pin configurations */
-#if defined(PICO_RP2350A)
+#if PICO_RP2350A == 0
 static uint _pin_miso_conf[2][6] = {
     { 0,  4, 16, 20, 32, 36},  // SPI0_RX
     { 8, 12, 24, 28, 40, 44}   // SPI1_RX
