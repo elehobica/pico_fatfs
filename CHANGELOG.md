@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 * Add SPI PIO support for the case that pin assignment is not compliant with SPI function
 * Send 32 cycles of CS low in pico_fatfs_reboot_spi()
+* Add tests/build_docker.sh
 ### Changed
+* Support pico-sdk 2.3.0
 * Update the benchmark test logs
 
 ## [fatfs-R0.15-1.0.2] - 2025-04-20
