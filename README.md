@@ -146,6 +146,12 @@ $ ../build_docker.sh pico2     # build only Pico 2  -> build2/pico_fatfs_xxxx.uf
 > cmake -G "NMake Makefiles" -DPICO_PLATFORM=rp2350 -DPICO_BOARD=pico2 ..  ; (for Raspberry Pi Pico 2)
 > nmake
 ```
+* Alternative Build using VS code + Raspberry Pi Pico module
+```
+From the Raspberry Pi Pico Module select 'Import Project'
+Browse to pico_fatfs\tests\<test_default  or  test_variation1>
+Then from CMake Tools Module use Configure and after Build.
+```
 * Put "*.uf2" on RPI-RP2 or RP2350 drive
 ### Linux
 * Build is confirmed with [pico-sdk-dev-docker:sdk-2.3.0]( https://hub.docker.com/r/elehobica/pico-sdk-dev-docker)

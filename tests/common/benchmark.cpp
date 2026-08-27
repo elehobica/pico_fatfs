@@ -1,5 +1,7 @@
 #include "benchmark.h"
 
+#define SERUSB      //sorry, cant undersant how to redirect cout/cin to Serial_USB -- so all replaced with printf/getchar
+
 #include <cstdint>
 #include <iostream>
 #include <iomanip>
@@ -9,7 +11,13 @@
 using namespace std;
 
 #include "hardware/adc.h"
+
+#ifndef SERUSB
 #include "hardware/uart.h"
+#else
+#include <cstdio>
+#endif
+
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 
@@ -43,7 +51,7 @@ const bool SKIP_FIRST_LATENCY = true;
 const size_t BUF_SIZE = 512;
 
 // File size in MB where MB = 1,000,000 bytes.
-const uint32_t FILE_SIZE_MB = 5;
+const uint32_t FILE_SIZE_MB = 500;
 
 // Write pass count.
 const uint8_t WRITE_COUNT = 2;
@@ -121,13 +129,17 @@ static void _error_blink(int count)
 
 static void flush_stream(stringstream& ss)
 {
+#ifndef SERUSB
     cout << ss.str();
+#else
+    printf(ss.str().c_str());
+#endif
     ssof << ss.str();
     ss.str("");
 }
 
 int benchmark(pico_fatfs_spi_config_t config)
-{
+{    
     pico_fatfs_spi_config_t _config = config;
 
     stringstream ss;
@@ -145,7 +157,9 @@ int benchmark(pico_fatfs_spi_config_t config)
     bool skipLatency;
 
     stdio_init_all();
+    
 
+#ifndef SERUSB
     // Initialise UART 0
     uart_init(uart0, 115200);
     // Set the GPIO pin mux to the UART - 0 is TX, 1 is RX
@@ -154,12 +168,25 @@ int benchmark(pico_fatfs_spi_config_t config)
 
     ssof.str("");
     cout << endl;
+#else
+    // serial connection waiting (max 1 sec)
+    while (!stdio_usb_connected()) {
+         sleep_ms(100);
+         printf("test- \r\n");
+    }
+
+    printf("test1 \r\n");
+#endif
 
     // Pico / Pico W dependencies
     _picoW = _check_pico_w();
     if (_picoW) {
         if (cyw43_arch_init()) {  // this is needed for driving LED
+#ifndef SERUSB            
             cout << "cyw43 init failed" << endl;
+#else
+            printf("cyw43 init failed\r\n");
+#endif
             return 1;
         }
     } else {
@@ -169,15 +196,21 @@ int benchmark(pico_fatfs_spi_config_t config)
     }
     _set_led(false);
 
+    int chr;
 
+#ifndef SERUSB    
     // Discard any input.
     while (uart_is_readable(uart0)) {
         uart_getc(uart0);
     }
+
     cout << "Type any character to start (*: Auto select from SPI / SPI PIO, p: SPI PIO)" << endl;
     while (!uart_is_readable_within_us(uart0, 1000)) {};
 
-    int chr;
+#else
+    printf("Type any character to start (*: Auto select from SPI / SPI PIO, p: SPI PIO)\r\n");
+#endif
+
     while ((chr = getchar_timeout_us(0)) == PICO_ERROR_TIMEOUT) {}
 
     if (chr == 'p') {
@@ -206,11 +239,22 @@ int benchmark(pico_fatfs_spi_config_t config)
     for (int i = 0; i < 5; i++) {
         fr = f_mount(&fs, "", 1);
         if (fr == FR_OK) { break; }
+
+#ifndef SERUSB        
         cout << "mount error " << fr << " -> retry " << i << endl;
+#else
+        printf("mount error %d -> retry %d\r\n",fr,i);
+#endif
+
         pico_fatfs_reboot_spi();
     }
     if (fr != FR_OK) {
+
+#ifndef SERUSB       
         cout << "mount error " << fr << endl;
+#else
+        printf("mount error %d\r\n",fr);
+#endif
         _error_blink(1);
     }
     ss << "Operation  clk_slow: " << fixed << setw(6) << setprecision(2)
@@ -258,7 +302,11 @@ int benchmark(pico_fatfs_spi_config_t config)
 
     fr = f_open(&fil, "bench.dat", FA_READ | FA_WRITE | FA_CREATE_ALWAYS);
     if (fr != FR_OK) {
+#ifndef SERUSB        
         cout << "open error " << fr << endl;
+#else
+        printf("open error %d\r\n",fr);
+#endif
         _error_blink(2);
     }
 
@@ -284,18 +332,32 @@ int benchmark(pico_fatfs_spi_config_t config)
     for (uint8_t nTest = 0; nTest < WRITE_COUNT; nTest++) {
         fr = f_lseek(&fil, 0);
         if (fr != FR_OK) {
+#ifndef SERUSB            
             cout << "lseek error " << fr << endl;
+#else
+            printf("lseek error %d\r\n",fr);
+#endif
             _error_blink(3);
         }
         fr = f_truncate(&fil);
         if (fr != FR_OK) {
+#ifndef SERUSB
             cout << "truncate error " << fr << endl;
+#else
+            printf("truncate error %d\r\n",fr);
+#endif
+
             _error_blink(4);
         }
         if (PRE_ALLOCATE) {
             fr = f_expand(&fil, FILE_SIZE, 0);
             if (fr != FR_OK) {
+#ifndef SERUSB                
                 cout << "preallocate error " << fr << endl;
+#else
+                printf("preallocate error %d\r\n",fr);
+#endif
+
                 _error_blink(5);
             }
         }
@@ -308,7 +370,12 @@ int benchmark(pico_fatfs_spi_config_t config)
             uint32_t m = to_us_since_boot(get_absolute_time());
             fr = f_write(&fil, buf, BUF_SIZE, &bw);
             if (fr != FR_OK || bw != BUF_SIZE) {
+#ifndef SERUSB                
                 cout << "write failed " << fr << " " << bw << endl;
+#else
+                printf("write failed %d " " %d\r\n",fr,bw);
+#endif
+
                 _error_blink(6);
             }
             m = to_us_since_boot(get_absolute_time()) - m;
@@ -328,7 +395,12 @@ int benchmark(pico_fatfs_spi_config_t config)
         }
         fr = f_sync(&fil);
         if (fr != FR_OK) {
+#ifndef SERUSB            
             cout << "f_sync failed " << fr << endl;
+#else
+            printf("f_sync failed %d\r\n",fr);
+#endif
+
             _error_blink(7);
         }
         t = to_ms_since_boot(get_absolute_time()) - t;
@@ -348,7 +420,12 @@ int benchmark(pico_fatfs_spi_config_t config)
     for (uint8_t nTest = 0; nTest < READ_COUNT; nTest++) {
         fr = f_rewind(&fil);
         if (fr != FR_OK) {
+#ifndef SERUSB
             cout << "rewind failed " << fr << endl;
+#else
+            printf("rewind failed %d\r\n",fr);
+#endif
+
             _error_blink(8);
         }
         maxLatency = 0;
@@ -361,13 +438,21 @@ int benchmark(pico_fatfs_spi_config_t config)
             uint32_t m = to_us_since_boot(get_absolute_time());
             fr = f_read(&fil, buf, BUF_SIZE, &br);
             if (fr != FR_OK || br != BUF_SIZE) {
+#ifndef SERUSB
                 cout << "read failed " << fr << " " << br << endl;
+#else
+                printf("read failed %d  %d\r\n",fr,bw);
+#endif
                 _error_blink(9);
             }
             m = to_us_since_boot(get_absolute_time()) - m;
             totalLatency += m;
             if (buf[BUF_SIZE-1] != '\n') {
+#ifndef SERUSB
                 cout << "data check error";
+#else
+                printf("data check error\r\n");
+#endif
                 _error_blink(10);
             }
             if (skipLatency) {
@@ -387,36 +472,57 @@ int benchmark(pico_fatfs_spi_config_t config)
         ss << fixed << setprecision(4) << setw(7) << s/t << ", " << maxLatency << ", " << minLatency << ", " << totalLatency/n << endl;
         flush_stream(ss);
     }
-
+#ifndef SERUSB
     cout << endl << "Done" << endl;
 
     cout << "Save log to file? (y/n): " << flush;
+#else
+    printf(" Done\r\n ");
+    printf(" Save log to file? (y/n):\r\n ");
+#endif
     
     int response;
     while (true) {
+
+#ifndef SERUSB        
         while (!uart_is_readable(uart0)) {
             sleep_ms(10);
         }
         response = uart_getc(uart0);
-        
         cout << (char)response;
-        
+
         if (response == 'y' || response == 'Y' || response == 'n' || response == 'N') {
             cout << endl;
             break;
         }
+#else
+        while((response = getchar_timeout_us(0)) == PICO_ERROR_TIMEOUT) {}
+        if (response == 'y' || response == 'Y' || response == 'n' || response == 'N') {
+            printf("\r\n");
+            break;
+        }
+#endif
+     
     }
     
     if (response == 'y' || response == 'Y') {
         string pico_str = _picoW ? PICOW_STR : PICO_STR;
         string filename = "benchmark_" + pico_str + (spi_configured ? "_SPI" : "_SPI_PIO") + ".log";
         
+#ifndef SERUSB
         cout << "Saving log to " << filename << "..." << endl;
+#else
+        printf("Saving log to %s ...\r\n", filename.c_str());
+#endif
         
         FIL log_file;
         fr = f_open(&log_file, filename.c_str(), FA_WRITE | FA_CREATE_ALWAYS);
         if (fr != FR_OK) {
+#ifndef SERUSB
             cout << "Error opening log file: " << fr << endl;
+#else
+            printf("Error opening log file: %d\r\n", fr);
+#endif
         } else {
             string log_content = ssof.str();
             
@@ -424,9 +530,15 @@ int benchmark(pico_fatfs_spi_config_t config)
             fr = f_write(&log_file, log_content.c_str(), log_content.length(), &bw);
             
             if (fr != FR_OK) {
+#ifndef SERUSB                
                 cout << "Error writing to log file: " << fr << endl;
             } else {
                 cout << "Log saved successfully." << endl;
+#else
+                printf("Error writing to log file: %d\r\n", fr);
+            } else {
+                printf("Log saved successfully.\r\n", fr);
+#endif
             }
             
             f_close(&log_file);
